@@ -74,6 +74,11 @@ setPreviewTexture method in UVCCamera.java etc.), but we have not confirm whethe
 project run on Android 3.1 yet.
 Some sample projects need API>=18 though.
 
+### 2017/12/26
+1. 升级easypusher
+1. isu推流成功,区分4.4和5.0系统编码
+1. 添加rtmp-rtsp-stream-client-java库
+
 ### 2017/10/20
 1. 优化easypusher
 1. 码流边推边保存, test4点击录制按钮即可完成

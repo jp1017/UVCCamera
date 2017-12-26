@@ -23,7 +23,6 @@
 
 package com.serenegiant.encoder;
 
-import android.annotation.TestApi;
 import android.content.Context;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
@@ -438,81 +437,6 @@ public abstract class MediaEncoder implements Runnable, InitCallback {
         }
     }
 
-	private ByteBuffer[] outputBuffers;
-
-	/**
-	 * 推流测试
-	 */
-	@TestApi
-	private void darwinPush() {
-		MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-		int outputBufferIndex = 0;
-		byte[] mPpsSps = new byte[0];
-		byte[] h264 = new byte[320 * 240];
-		do {
-//			KLog.w(TAG, "drainPushing...");
-
-			outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
-			if (outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
-				// no output available yet
-			} else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-				// not expected for an encoder
-				outputBuffers = mMediaCodec.getOutputBuffers();
-			} else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-
-			} else if (outputBufferIndex < 0) {
-				// let's ignore it
-			} else {
-				ByteBuffer outputBuffer;
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-					outputBuffer = mMediaCodec.getOutputBuffer(outputBufferIndex);
-				} else {
-					if (outputBuffers == null) {
-						continue;
-					}
-					outputBuffer = outputBuffers[outputBufferIndex];
-				}
-
-				outputBuffer.position(bufferInfo.offset);
-				outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
-
-				boolean sync = false;
-				if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
-					sync = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-					if (!sync) {
-						byte[] temp = new byte[bufferInfo.size];
-						outputBuffer.get(temp);
-						mPpsSps = temp;
-						mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
-						continue;
-					} else {
-						mPpsSps = new byte[0];
-					}
-				}
-				sync |= (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-				int len = mPpsSps.length + bufferInfo.size;
-				if (len > h264.length) {
-					h264 = new byte[len];
-				}
-				if (sync) {
-					System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
-					outputBuffer.get(h264, mPpsSps.length, bufferInfo.size);
-					mPusher.push(h264, 0, mPpsSps.length + bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
-					if (BuildConfig.DEBUG)
-						KLog.w(TAG, String.format("push i video stamp:%d", bufferInfo.presentationTimeUs / 1000));
-				} else {
-					outputBuffer.get(h264, 0, bufferInfo.size);
-					mPusher.push(h264, 0, bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
-					if (BuildConfig.DEBUG)
-						KLog.w(TAG, String.format("push video stamp:%d", bufferInfo.presentationTimeUs / 1000));
-				}
-
-				mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
-			}
-		}
-		while (mIsCapturing);
-	}
-
     /**
      * drain encoded data and write them to muxer
      */
@@ -597,10 +521,10 @@ LOOP:	while (mIsCapturing) {
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 						outputBuffer = mMediaCodec.getOutputBuffer(encoderStatus);
 					} else {
-						if (outputBuffers == null) {
+						if (encoderOutputBuffers == null) {
 							continue;
 						}
-						outputBuffer = outputBuffers[encoderStatus];
+						outputBuffer = encoderOutputBuffers[encoderStatus];
 					}
 
 					outputBuffer.position(mBufferInfo.offset);

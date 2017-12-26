@@ -66,4 +66,7 @@ dependencies {
         //推流
 //    compile(name: 'libeasypusher', ext: 'aar')
     compile project(':libeasypusher')
+    
+    
+    compile project(':rtplibrary')
 }

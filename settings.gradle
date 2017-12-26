@@ -21,6 +21,9 @@
  *  may have a different license, see the respective files.
  */
 
+include ':encoder'
+include ':rtsp'
+include ':rtplibrary'
 include ':libuvccamera'
 include ':libeasypusher'
 include ':usbCameraCommon'

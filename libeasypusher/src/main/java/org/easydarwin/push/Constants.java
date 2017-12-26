@@ -132,6 +132,7 @@ public final class Constants {
 	//推流地址,端口
 	public static final String PUSHER_ADDR = "video.qdsxkj.com";
 //	public static final String PUSHER_ADDR = "192.168.1.7";
+//	public static final String PUSHER_ADDR = "139.224.226.23";
 	public static final int PUSHER_PORT = 10554;//或者10554
 //	public static final int PUSHER_BACK_ID = 4002;
 	public static final String PUSHER_BACK_ID = "107700000016_11";
