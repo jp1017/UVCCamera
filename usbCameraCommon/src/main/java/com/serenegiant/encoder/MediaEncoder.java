@@ -27,15 +27,17 @@ import android.content.Context;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.os.Build;
+import android.util.Pair;
 
+import com.pedro.rtsp.rtsp.Protocol;
+import com.pedro.rtsp.rtsp.RtspClient;
+import com.pedro.rtsp.utils.ConnectCheckerRtsp;
 import com.serenegiant.app.UvcApp;
-import com.serenegiant.common.BuildConfig;
 import com.socks.library.KLog;
 
 import org.easydarwin.push.Constants;
 import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
-import org.easydarwin.push.Pusher;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -95,6 +97,7 @@ public abstract class MediaEncoder implements Runnable, InitCallback {
     protected final MediaEncoderListener mListener;
 
 	private EasyPusher mPusher;
+	private RtspClient mRtspClient;
 
     public MediaEncoder(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
     	if (listener == null) throw new NullPointerException("MediaEncoderListener is null");
@@ -117,79 +120,118 @@ public abstract class MediaEncoder implements Runnable, InitCallback {
 
 	@Override
 	public void onCallback(int code) {
-		KLog.w(TAG, "推流onCallback: " + code);
+		KLog.w(TAG, "pushing onCallback: " + code);
 		switch (code) {
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-				KLog.w(TAG, "推流无效Key");
+				KLog.w(TAG, "pushing invalid Key");
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-				KLog.w(TAG, "推流激活成功");
+				KLog.w(TAG, "pushing 激活成功");
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
-				KLog.w(TAG, "推流连接中");
+				KLog.w(TAG, "pushing connecting");
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
-				KLog.w(TAG, "推流连接成功");
+				KLog.w(TAG, "pushing connect success");
 				isPushing = true;
 
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
-				KLog.w(TAG, "推流连接失败");
+				KLog.w(TAG, "pushing connect failed");
 //				isPushing = false;
 
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
-				KLog.w(TAG, "推流连接异常中断");
+				KLog.w(TAG, "pushing 连接异常中断");
 //				isPushing = false;
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
-				KLog.w(TAG, "推流推流中");
+				KLog.w(TAG, "pushing pushing");
 				isPushing = true;
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
-				KLog.w(TAG, "推流断开连接");
+				KLog.w(TAG, "pushing 断开连接");
 //				isPushing = false;
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-				KLog.w(TAG, "推流平台不匹配");
+				KLog.w(TAG, "pushing 平台不匹配");
 //				isPushing = false;
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-				KLog.w(TAG, "推流断授权使用商不匹配");
+				KLog.w(TAG, "pushing 断授权使用商不匹配");
 //				isPushing = false;
 				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-				KLog.w(TAG, "推流进程名称长度不匹配");
+				KLog.w(TAG, "pushing 进程名称长度不匹配");
 //				isPushing = false;
 				break;
 		}
 	}
 
-	public static boolean isStartPush;	//是否开始推流
-	private volatile boolean isPushing;		//是否正在推流
+	public static boolean isStartPush;	//是否开始pushing 
+	private volatile boolean isPushing;		//是否正在pushing 
 
 	/**
 	 * 初始化easypusher
 	 */
 	protected void initEasyPusher(Context context, String videoIp, int tcpPort) {
-		if (mPusher == null) {
+        if (mRtspClient != null) {
+            return;
+        }
+
+        mRtspClient = new RtspClient(new ConnectCheckerRtsp() {
+			@Override
+			public void onConnectionSuccessRtsp() {
+				KLog.w(TAG, "pushing  connect success");
+                isPushing = true;
+
+			}
+
+			@Override
+			public void onConnectionFailedRtsp(String reason) {
+				KLog.w(TAG, "pushing  connect failed");
+                isPushing = false;
+
+			}
+
+			@Override
+			public void onDisconnectRtsp() {
+				KLog.w(TAG, "pushing  disconnect");
+                isPushing = false;
+
+			}
+
+			@Override
+			public void onAuthErrorRtsp() {
+				KLog.w(TAG, "pushing  auth failed");
+                isPushing = true;
+
+			}
+
+			@Override
+			public void onAuthSuccessRtsp() {
+				KLog.w(TAG, "pushing  auth success");
+
+			}
+		});
+
+        mRtspClient.setUrl("rtsp://139.224.226.23:10554/107700000016_11.sdp");
+        mRtspClient.connect();
+
+        /*if (mPusher == null) {
 			mPusher = new EasyPusher();
 		} else {
 			return;
 		}
 
 		String id = Constants.PUSHER_BACK_ID;
-		KLog.w(TAG, "推流: url: " + String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id));
-
-
-		//旧版本
-//		mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id),
-//                Constants.KEY_EASYPUSHER, context, this);
+		KLog.w(TAG, "pushing : url: " + String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id));
 
 		//新版本
 		mPusher.initPush(context.getApplicationContext(), this);
 		mPusher.setMediaInfo(Pusher.Codec.EASY_SDK_VIDEO_CODEC_H264, 25, Pusher.Codec.EASY_SDK_AUDIO_CODEC_AAC, 1, 8000, 16);
 		mPusher.start(videoIp, tcpPort + "", String.format("%s.sdp", id), Pusher.TransType.EASY_RTP_OVER_TCP);
+		*/
 	}
 
     public String getOutputPath() {
@@ -437,6 +479,8 @@ public abstract class MediaEncoder implements Runnable, InitCallback {
         }
     }
 
+    private boolean spsPpsSetted = false;
+
     /**
      * drain encoded data and write them to muxer
      */
@@ -452,16 +496,13 @@ public abstract class MediaEncoder implements Runnable, InitCallback {
         	return;
         }
 
-		byte[] mPpsSps = new byte[0];
-		byte[] h264 = new byte[320 * 240];
-
 LOOP:	while (mIsCapturing) {
 
 
 	if (isStartPush) {
 		initEasyPusher(UvcApp.getApplication(), Constants.PUSHER_ADDR, Constants.PUSHER_PORT);
 	} else {
-		//结束推流
+		//结束pushing 
 		isPushing = false;
 		if (mPusher != null) {
 			mPusher.stop();
@@ -482,41 +523,49 @@ LOOP:	while (mIsCapturing) {
             	if (DEBUG) KLog.w(TAG, "INFO_OUTPUT_BUFFERS_CHANGED");
                 // this shoud not come when encoding
 				encoderOutputBuffers = mMediaCodec.getOutputBuffers();
-            } else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-            	if (DEBUG) KLog.w(TAG, "INFO_OUTPUT_FORMAT_CHANGED");
-            	// this status indicate the output format of codec is changed
-                // this should come only once before actual encoded data
-            	// but this status never come on Android4.3 or less
-            	// and in that case, you should treat when MediaCodec.BUFFER_FLAG_CODEC_CONFIG come.
-                if (mMuxerStarted) {	// second time request is error
-                    throw new RuntimeException("format changed twice");
-                }
+			} else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+				if (DEBUG) KLog.w(TAG, "INFO_OUTPUT_FORMAT_CHANGED");
+				// this status indicate the output format of codec is changed
+				// this should come only once before actual encoded data
+				// but this status never come on Android4.3 or less
+				// and in that case, you should treat when MediaCodec.BUFFER_FLAG_CODEC_CONFIG come.
+				if (mMuxerStarted) {    // second time request is error
+					throw new RuntimeException("format changed twice");
+				}
 				// get output format from codec and pass them to muxer
 				// getOutputFormat should be called after INFO_OUTPUT_FORMAT_CHANGED otherwise crash.
-                final MediaFormat format = mMediaCodec.getOutputFormat(); // API >= 16
-               	mTrackIndex = muxer.addTrack(format);
-               	mMuxerStarted = true;
-               	if (!muxer.start()) {
-               		// we should wait until muxer is ready
-               		synchronized (muxer) {
-	               		while (!muxer.isStarted())
-						try {
-							muxer.wait(100);
-						} catch (final InterruptedException e) {
-							break LOOP;
-						}
-               		}
-               	}
-            } else if (encoderStatus < 0) {
-            	// unexpected status
-            	if (DEBUG) KLog.w(TAG, "drain:unexpected result from encoder#dequeueOutputBuffer: " + encoderStatus);
-            } else {
+				final MediaFormat mediaFormat = mMediaCodec.getOutputFormat(); // API >= 16
 
-//                KLog.w(TAG, "推流: " + isPushing + ", mpusher: "
+				mTrackIndex = muxer.addTrack(mediaFormat);
+				mMuxerStarted = true;
+				if (!muxer.start()) {
+					// we should wait until muxer is ready
+					synchronized (muxer) {
+						while (!muxer.isStarted())
+							try {
+								muxer.wait(100);
+							} catch (final InterruptedException e) {
+								break LOOP;
+							}
+					}
+				}
+
+                mRtspClient.setSPSandPPS(mediaFormat.getByteBuffer("csd-0"),
+                        mediaFormat.getByteBuffer("csd-1"));
+                spsPpsSetted = true;
+				mRtspClient.connect();
+
+
+			} else {
+				if (encoderStatus < 0) {
+					// unexpected status
+					if (DEBUG)
+						KLog.w(TAG, "drain:unexpected result from encoder#dequeueOutputBuffer: " + encoderStatus);
+				} else {
+
+//                KLog.w(TAG, "pushing : " + isPushing + ", mpusher: "
 //                        + (mPusher == null ? "" : mPusher.getClass().getName()));
 
-				//推流
-				if (mPusher != null && isPushing) {
 					ByteBuffer outputBuffer;
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 						outputBuffer = mMediaCodec.getOutputBuffer(encoderStatus);
@@ -527,101 +576,117 @@ LOOP:	while (mIsCapturing) {
 						outputBuffer = encoderOutputBuffers[encoderStatus];
 					}
 
-					outputBuffer.position(mBufferInfo.offset);
-					outputBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
 
-					boolean sync = false;
-					if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
-						sync = (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-						if (!sync) {
-							byte[] temp = new byte[mBufferInfo.size];
-							outputBuffer.get(temp);
-							mPpsSps = temp;
-							mMediaCodec.releaseOutputBuffer(encoderStatus, false);
-							continue;
-						} else {
-							mPpsSps = new byte[0];
-						}
-					}
-					sync |= (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-					int len = mPpsSps.length + mBufferInfo.size;
-					if (len > h264.length) {
-						h264 = new byte[len];
-					}
-					if (sync) {
-						System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
-						outputBuffer.get(h264, mPpsSps.length, mBufferInfo.size);
-						mPusher.push(h264, 0, mPpsSps.length + mBufferInfo.size, mBufferInfo.presentationTimeUs / 1000, 1);
-						if (BuildConfig.DEBUG)
-							KLog.w(TAG, String.format("push i video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
-					} else {
-						outputBuffer.get(h264, 0, mBufferInfo.size);
-						mPusher.push(h264, 0, mBufferInfo.size, mBufferInfo.presentationTimeUs / 1000, 1);
-						if (BuildConfig.DEBUG)
-							KLog.w(TAG, String.format("push video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
-					}
-				} /*else {
+                    //1. save mp4 file
+
+                    if (outputBuffer == null) {
+                        // this never should come...may be a MediaCodec internal error
+                        throw new RuntimeException("encoderOutputBuffer " + encoderStatus + " was null");
+                    }
+                    if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                        // You shoud set output format to muxer here when you target Android4.3 or less
+                        // but MediaCodec#getOutputFormat can not call here(because INFO_OUTPUT_FORMAT_CHANGED don't come yet)
+                        // therefor we should expand and prepare output format from buffer data.
+                        // This sample is for API>=18(>=Android 4.3), just ignore this flag here
+                        if (DEBUG) KLog.w(TAG, "drain:BUFFER_FLAG_CODEC_CONFIG");
+                        mBufferInfo.size = 0;
+                    }
+
+                    if (mBufferInfo.size != 0) {
+                        // encoded data is ready, clear waiting counter
+                        count = 0;
+                        if (!mMuxerStarted) {
+                            // muxer is not ready...this will prrograming failure.
+                            throw new RuntimeException("drain:muxer hasn't started");
+                        }
+
+                        // write encoded data to muxer(need to adjust presentationTimeUs.
+                        mBufferInfo.presentationTimeUs = getPTSUs();
+
+                        muxer.writeSampleData(mTrackIndex, outputBuffer, mBufferInfo);
+                        prevOutputPTSUs = mBufferInfo.presentationTimeUs;
+                    }
+
+
+
+					//2. pushing
+					if (mRtspClient != null && isPushing) {
+						KLog.w(TAG, "开始pushing ");
+
+                        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                            KLog.w(TAG, "开始pushing , 设置sps pps");
+
+                            if (!spsPpsSetted) {
+                                Pair<ByteBuffer, ByteBuffer> buffers =
+                                        decodeSpsPpsFromBuffer(outputBuffer.duplicate(), mBufferInfo.size);
+                                if (buffers != null) {
+                                    mRtspClient.setSPSandPPS(buffers.first, buffers.second);
+                                    spsPpsSetted = true;
+									mRtspClient.connect();
+
+								}
+                            }
+                        }
+
+						KLog.w(TAG, String.format("push i video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
+						mRtspClient.sendVideo(outputBuffer, mBufferInfo);
+
+					} /*else {
 					if (mPusher != null) {
 						mPusher.stop();
 					}
 				}*/
 
 
+					//3. return buffer to encoder
+					mMediaCodec.releaseOutputBuffer(encoderStatus, false);
 
-				//保存mp4文件
-				ByteBuffer encodedData;
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-					encodedData = mMediaCodec.getOutputBuffer(encoderStatus);
-				} else {
-					if (encoderOutputBuffers == null) {
-						continue;
+
+					if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+						// when EOS come.
+						mMuxerStarted = false;
+						mIsCapturing = false;
+						break;      // out of while
 					}
-					encodedData = encoderOutputBuffers[encoderStatus];
 				}
+			}
+}
+    }
 
-                if (encodedData == null) {
-                	// this never should come...may be a MediaCodec internal error
-                    throw new RuntimeException("encoderOutputBuffer " + encoderStatus + " was null");
-                }
-                if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                	// You shoud set output format to muxer here when you target Android4.3 or less
-                	// but MediaCodec#getOutputFormat can not call here(because INFO_OUTPUT_FORMAT_CHANGED don't come yet)
-                	// therefor we should expand and prepare output format from buffer data.
-                	// This sample is for API>=18(>=Android 4.3), just ignore this flag here
-					if (DEBUG) KLog.w(TAG, "drain:BUFFER_FLAG_CODEC_CONFIG");
-					mBufferInfo.size = 0;
-                }
-
-                if (mBufferInfo.size != 0) {
-                	// encoded data is ready, clear waiting counter
-            		count = 0;
-                    if (!mMuxerStarted) {
-                    	// muxer is not ready...this will prrograming failure.
-                        throw new RuntimeException("drain:muxer hasn't started");
-                    }
-
-                    // write encoded data to muxer(need to adjust presentationTimeUs.
-                   	mBufferInfo.presentationTimeUs = getPTSUs();
-
-                   	muxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
-					prevOutputPTSUs = mBufferInfo.presentationTimeUs;
-                }
-
-
-
-                // return buffer to encoder
-                mMediaCodec.releaseOutputBuffer(encoderStatus, false);
-
-
-                if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                	// when EOS come.
-               		mMuxerStarted = false;
-               		mIsCapturing = false;
-                    break;      // out of while
+    /**
+     * decode sps and pps if the encoder never call to MediaCodec.INFO_OUTPUT_FORMAT_CHANGED
+     */
+    private Pair<ByteBuffer, ByteBuffer> decodeSpsPpsFromBuffer(ByteBuffer outputBuffer,
+                                                                int length) {
+        byte[] mSPS = null, mPPS = null;
+        byte[] csd = new byte[length];
+        outputBuffer.get(csd, 0, length);
+        int i = 0;
+        int spsIndex = -1;
+        int ppsIndex = -1;
+        while (i < length - 4) {
+            if (csd[i] == 0 && csd[i + 1] == 0 && csd[i + 2] == 0 && csd[i + 3] == 1) {
+                if (spsIndex == -1) {
+                    spsIndex = i;
+                } else {
+                    ppsIndex = i;
+                    break;
                 }
             }
+            i++;
         }
+        if (spsIndex != -1 && ppsIndex != -1) {
+            mSPS = new byte[ppsIndex];
+            System.arraycopy(csd, spsIndex, mSPS, 0, ppsIndex);
+            mPPS = new byte[length - ppsIndex];
+            System.arraycopy(csd, ppsIndex, mPPS, 0, length - ppsIndex);
+        }
+        if (mSPS != null && mPPS != null) {
+            return new Pair<>(ByteBuffer.wrap(mSPS), ByteBuffer.wrap(mPPS));
+        }
+        return null;
     }
+
 
     /**
      * previous presentationTimeUs for writing
@@ -641,3 +706,4 @@ LOOP:	while (mIsCapturing) {
     }
 
 }
+

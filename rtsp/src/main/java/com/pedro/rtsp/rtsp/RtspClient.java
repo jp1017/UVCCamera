@@ -146,17 +146,6 @@ public class RtspClient {
     return connectCheckerRtsp;
   }
 
-    public void setSPSandPPS(ByteBuffer sps) {
-        /*byte[] mSPS = new byte[sps.capacity() - 4];
-        sps.position(4);
-        sps.get(mSPS, 0, mSPS.length);
-        byte[] mPPS = new byte[pps.capacity() - 4];
-        pps.position(4);
-        pps.get(mPPS, 0, mPPS.length);
-        this.sps = mSPS;
-        this.pps = mPPS;*/
-    }
-
   public void setSPSandPPS(ByteBuffer sps, ByteBuffer pps) {
     byte[] mSPS = new byte[sps.capacity() - 4];
     sps.position(4);

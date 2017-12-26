@@ -1,6 +1,8 @@
 package com.pedro.rtsp.rtp.packets;
 
 import android.media.MediaCodec;
+import android.util.Log;
+
 import com.pedro.rtsp.rtp.sockets.RtpSocketTcp;
 import com.pedro.rtsp.rtp.sockets.RtpSocketUdp;
 import com.pedro.rtsp.rtsp.Protocol;
@@ -48,10 +50,14 @@ public class H264Packet extends BasePacket {
 
       if (type == 5) {
         buffer = socket.requestBuffer();
-        socket.markNextPacket();
-        socket.updateTimestamp(ts);
-        System.arraycopy(stapA, 0, buffer, RtpConstants.RTP_HEADER_LENGTH, stapA.length);
-        socket.commitBuffer(stapA.length + RtpConstants.RTP_HEADER_LENGTH);
+          if (buffer != null && stapA != null) {
+              socket.markNextPacket();
+              socket.updateTimestamp(ts);
+              Log.w(TAG, "buffer=null: " + (buffer == null));
+              System.arraycopy(stapA, 0, buffer, RtpConstants.RTP_HEADER_LENGTH, stapA.length);
+              socket.commitBuffer(stapA.length + RtpConstants.RTP_HEADER_LENGTH);
+          }
+
       }
 
       // Small NAL unit => Single NAL unit
