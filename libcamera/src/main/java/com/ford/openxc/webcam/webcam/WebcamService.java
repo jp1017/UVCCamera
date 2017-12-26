@@ -12,7 +12,7 @@ public class WebcamService extends Service {
     private final static String TAG = "WebcamManager";
 
     //usb摄像头设备
-    public final static String VIDEO = "/dev/video5";
+    public final static String VIDEO = "/dev/video6";
 
     private final IBinder mBinder = new WebcamBinder();
     private IWebcam mWebcam;

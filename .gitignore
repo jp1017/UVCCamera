@@ -30,3 +30,6 @@ proguard/
 
 # iml files
 *.iml
+
+*.o
+*.a

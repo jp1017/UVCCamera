@@ -78,6 +78,8 @@ private:
 	pthread_cond_t capture_sync;
 	uvc_frame_t *captureQueu;			// keep latest frame
 	jobject mFrameCallbackObj;
+
+	jobject mH264CallbackObj;
 	convFunc_t mFrameCallbackFunc;
 	Fields_iframecallback iframecallback_fields;
 	int mPixelFormat;
@@ -101,6 +103,8 @@ private:
 	uvc_frame_t *draw_preview_one(uvc_frame_t *frame, ANativeWindow **window, convFunc_t func, int pixelBytes);
 //
 	void addCaptureFrame(uvc_frame_t *frame);
+	//添加支持h264
+	void do_h264_callback(uvc_frame_t *frame);
 	uvc_frame_t *waitCaptureFrame();
 	void clearCaptureFrame();
 	static void *capture_thread_func(void *vptr_args);

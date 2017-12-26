@@ -29,7 +29,9 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
+import android.view.WindowManager;
 
+import com.github.anrwatchdog.ANRWatchDog;
 import com.serenegiant.common.BaseActivity;
 import com.serenegiant.service.LogService;
 
@@ -39,10 +41,12 @@ public class MainActivity extends BaseActivity {
 
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
+		//屏幕常亮
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_main);
-
 		startService(new Intent(this, LogService.class));
 
 		if (savedInstanceState == null) {
@@ -51,7 +55,10 @@ public class MainActivity extends BaseActivity {
 			getFragmentManager().beginTransaction()
 					.add(R.id.container, fragment).commit();
 		}
-	}
+
+
+//        new ANRWatchDog().setIgnoreDebugger(true).start();
+    }
 
 	@Override
 	protected void onResume() {

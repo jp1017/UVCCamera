@@ -46,8 +46,11 @@ import com.serenegiant.usb.Size;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.usb.UVCCamera;
 import com.serenegiant.usbcameratest4.R;
-import com.serenegiant.utils.Constants;
 import com.socks.library.KLog;
+
+import org.easydarwin.push.Constants;
+import org.easydarwin.push.EasyPusher;
+import org.easydarwin.push.InitCallback;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -61,13 +64,13 @@ public final class CameraServer extends Handler {
 	private int mFrameWidth = Constants.PIC_WIDTH_DEFAULT / 2;
 	private int mFrameHeight = Constants.PIC_HEIGHT_DEFAULT / 2;
 
-    private static class CallbackCookie {
+	private static class CallbackCookie {
 		boolean isConnected;
 	}
 
-    private final RemoteCallbackList<IUVCServiceCallback> mCallbacks
-		= new RemoteCallbackList<IUVCServiceCallback>();
-    private int mRegisteredCallbackCount;
+	private final RemoteCallbackList<IUVCServiceCallback> mCallbacks
+			= new RemoteCallbackList<IUVCServiceCallback>();
+	private int mRegisteredCallbackCount;
 
 	private RendererHolder mRendererHolder;
 	private final WeakReference<CameraThread> mWeakThread;
@@ -87,10 +90,14 @@ public final class CameraServer extends Handler {
 	}
 
 	@Override
-	protected void finalize() throws Throwable {
+	protected void finalize() {
 		if (DEBUG) KLog.w(TAG, "finalize:");
 		release();
-		super.finalize();
+		try {
+			super.finalize();
+		} catch (Throwable throwable) {
+			throwable.printStackTrace();
+		}
 	}
 
 	public void registerCallback(final IUVCServiceCallback callback) {
@@ -117,7 +124,7 @@ public final class CameraServer extends Handler {
 		}
 	}
 
-//********************************************************************************
+	//********************************************************************************
 //********************************************************************************
 	public void resize(final int width, final int height) {
 		if (DEBUG) KLog.w(TAG, String.format("resize(%d,%d)", width, height));
@@ -129,7 +136,7 @@ public final class CameraServer extends Handler {
 			}
 		}
 	}
-	
+
 	public void connect() {
 		if (DEBUG) KLog.w(TAG, "connect:");
 		final CameraThread thread = mWeakThread.get();
@@ -215,19 +222,19 @@ public final class CameraServer extends Handler {
 		sendEmptyMessage(MSG_PUSH_STOP);
 	}
 
-//********************************************************************************
+	//********************************************************************************
 	private void processOnCameraStart() {
 		if (DEBUG) KLog.w(TAG, "processOnCameraStart:");
 		try {
 			final int n = mCallbacks.beginBroadcast();
 			for (int i = 0; i < n; i++) {
 				if (!((CallbackCookie)mCallbacks.getBroadcastCookie(i)).isConnected)
-				try {
-					mCallbacks.getBroadcastItem(i).onConnected();
-					((CallbackCookie)mCallbacks.getBroadcastCookie(i)).isConnected = true;
-				} catch (final Exception e) {
-					KLog.e(TAG, "failed to call IOverlayCallback#onFrameAvailable");
-				}
+					try {
+						mCallbacks.getBroadcastItem(i).onConnected();
+						((CallbackCookie)mCallbacks.getBroadcastCookie(i)).isConnected = true;
+					} catch (final Exception e) {
+						KLog.e(TAG, "failed to call IOverlayCallback#onFrameAvailable");
+					}
 			}
 			mCallbacks.finishBroadcast();
 		} catch (final Exception e) {
@@ -240,17 +247,17 @@ public final class CameraServer extends Handler {
 		final int n = mCallbacks.beginBroadcast();
 		for (int i = 0; i < n; i++) {
 			if (((CallbackCookie)mCallbacks.getBroadcastCookie(i)).isConnected)
-			try {
-				mCallbacks.getBroadcastItem(i).onDisConnected();
-				((CallbackCookie)mCallbacks.getBroadcastCookie(i)).isConnected = false;
-			} catch (final Exception e) {
-				KLog.e(TAG, "failed to call IOverlayCallback#onDisConnected");
-			}
+				try {
+					mCallbacks.getBroadcastItem(i).onDisConnected();
+					((CallbackCookie)mCallbacks.getBroadcastCookie(i)).isConnected = false;
+				} catch (final Exception e) {
+					KLog.e(TAG, "failed to call IOverlayCallback#onDisConnected");
+				}
 		}
 		mCallbacks.finishBroadcast();
 	}
 
-//**********************************************************************
+	//**********************************************************************
 	private static final int MSG_OPEN = 0;
 	private static final int MSG_CLOSE = 1;
 	private static final int MSG_PREVIEW_START = 2;
@@ -309,7 +316,7 @@ public final class CameraServer extends Handler {
 	}
 
 	private final RenderHolderCallback mRenderHolderCallback
-		= new RenderHolderCallback() {
+			= new RenderHolderCallback() {
 		@Override
 		public void onCreate(final Surface surface) {
 		}
@@ -331,13 +338,17 @@ public final class CameraServer extends Handler {
 		}
 	};
 
-	private static final class CameraThread extends Thread {
+	private static final class CameraThread extends Thread implements InitCallback {
 		private static final String TAG_THREAD = "CameraThread";
 		private final Object mSync = new Object();
 		private boolean mIsRecording;
-	    private final WeakReference<Context> mWeakContext;
+		private final WeakReference<Context> mWeakContext;
 		private int mEncoderSurfaceId;
 		private int mFrameWidth, mFrameHeight;
+
+		/*private EasyPusher mEasyPusher;
+		private volatile boolean isPushing;	//是否推流
+		private byte[] mPpsSps;*/
 
 		/**
 		 * shutter sound
@@ -374,10 +385,10 @@ public final class CameraServer extends Handler {
 			if (DEBUG) KLog.w(TAG_THREAD, "getHandler:");
 			synchronized (mSync) {
 				if (mHandler == null)
-				try {
-					mSync.wait();
-				} catch (final InterruptedException e) {
-				}
+					try {
+						mSync.wait();
+					} catch (final InterruptedException e) {
+					}
 			}
 			return mHandler;
 		}
@@ -424,7 +435,7 @@ public final class CameraServer extends Handler {
 			synchronized (mSync) {
 				if (mUVCCamera == null) return;
 				try {
-					mUVCCamera.setPreviewSize(width, height, UVCCamera.FRAME_FORMAT_MJPEG);
+					mUVCCamera.setPreviewSize(width, height, UVCCamera.FRAME_FORMAT_YUYV);
 				} catch (final IllegalArgumentException e) {
 					try {
 						// fallback to YUV mode
@@ -479,7 +490,7 @@ public final class CameraServer extends Handler {
 				}
 			}
 		}
-		
+
 		public void handleCaptureStill(final String path) {
 			if (DEBUG) KLog.w(TAG_THREAD, "handleCaptureStill:");
 
@@ -507,16 +518,19 @@ public final class CameraServer extends Handler {
 		private void handleStartPush() {
 			KLog.w(TAG_THREAD, "handleStartPush:mMuxer=" + mMuxer);
 
-//			initEasyPusher();
+//			initEasyPusher(false);
+			if (mMuxer != null) {
+				synchronized (mSync) {
+					MediaEncoder.isStartPush = true;
+				}
+			}
 		}
 
 		private void handleStopPush() {
 			KLog.w(TAG_THREAD, "handleStopPush:mMuxer=" + mMuxer);
 			if (mMuxer != null) {
 				synchronized (mSync) {
-					/*if (isPushing) {
-						isPushing = false;
-					}*/
+					MediaEncoder.isStartPush = false;
 				}
 			}
 		}
@@ -594,45 +608,44 @@ public final class CameraServer extends Handler {
 				if (DEBUG) KLog.w(TAG, "onPrepared:encoder=" + encoder);
 				mIsRecording = true;
 				if (encoder instanceof MediaSurfaceEncoder)
-				try {
-					mVideoEncoder = (MediaSurfaceEncoder)encoder;
-					final Surface encoderSurface = mVideoEncoder.getInputSurface();
-					mEncoderSurfaceId = encoderSurface.hashCode();
-					mHandler.mRendererHolder.addSurface(mEncoderSurfaceId, encoderSurface, true);
-				} catch (final Exception e) {
-					KLog.e(TAG, "onPrepared:", e);
-				}
+					try {
+						mVideoEncoder = (MediaSurfaceEncoder)encoder;
+						final Surface encoderSurface = mVideoEncoder.getInputSurface();
+						mEncoderSurfaceId = encoderSurface.hashCode();
+						mHandler.mRendererHolder.addSurface(mEncoderSurfaceId, encoderSurface, true);
+					} catch (final Exception e) {
+						KLog.e(TAG, "onPrepared:", e);
+					}
 			}
 
 			@Override
 			public void onStopped(final MediaEncoder encoder) {
 				if (DEBUG) KLog.w(TAG_THREAD, "onStopped:encoder=" + encoder);
 				if ((encoder instanceof MediaSurfaceEncoder))
-				try {
-					mIsRecording = false;
-					if (mEncoderSurfaceId > 0) {
-						try {
-							mHandler.mRendererHolder.removeSurface(mEncoderSurfaceId);
-						} catch (final Exception e) {
-							KLog.w(TAG, e);
+					try {
+						mIsRecording = false;
+						if (mEncoderSurfaceId > 0) {
+							try {
+								mHandler.mRendererHolder.removeSurface(mEncoderSurfaceId);
+							} catch (final Exception e) {
+								KLog.w(TAG, e);
+							}
 						}
-					}
-					mEncoderSurfaceId = -1;
-					synchronized (mSync) {
-						if (mUVCCamera != null) {
-							mUVCCamera.stopCapture();
+						mEncoderSurfaceId = -1;
+						synchronized (mSync) {
+							if (mUVCCamera != null) {
+								mUVCCamera.stopCapture();
+							}
 						}
+						mVideoEncoder = null;
+						final String path = encoder.getOutputPath();
+						if (!TextUtils.isEmpty(path)) {
+							mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_MEDIA_UPDATE, path), 1000);
+						}
+					} catch (final Exception e) {
+						KLog.e(TAG, "onPrepared:", e);
 					}
-					mVideoEncoder = null;
-					final String path = encoder.getOutputPath();
-					if (!TextUtils.isEmpty(path)) {
-						mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_MEDIA_UPDATE, path), 1000);
-					}
-				} catch (final Exception e) {
-					KLog.e(TAG, "onPrepared:", e);
-				}
 			}
-
 		};
 
 		/**
@@ -641,25 +654,25 @@ public final class CameraServer extends Handler {
 		@SuppressWarnings("deprecation")
 		private void loadShutterSound(final Context context) {
 			if (DEBUG) KLog.w(TAG_THREAD, "loadShutterSound:");
-	    	// get system stream type using refrection
-	        int streamType;
-	        try {
-	            final Class<?> audioSystemClass = Class.forName("android.media.AudioSystem");
-	            final Field sseField = audioSystemClass.getDeclaredField("STREAM_SYSTEM_ENFORCED");
-	            streamType = sseField.getInt(null);
-	        } catch (final Exception e) {
-	        	streamType = AudioManager.STREAM_SYSTEM;	// set appropriate according to your app policy
-	        }
-	        if (mSoundPool != null) {
-	        	try {
-	        		mSoundPool.release();
-	        	} catch (final Exception e) {
-	        	}
-	        	mSoundPool = null;
-	        }
-	        // load sutter sound from resource
-		    mSoundPool = new SoundPool(2, streamType, 0);
-		    mSoundId = mSoundPool.load(context, R.raw.camera_click, 1);
+			// get system stream type using refrection
+			int streamType;
+			try {
+				final Class<?> audioSystemClass = Class.forName("android.media.AudioSystem");
+				final Field sseField = audioSystemClass.getDeclaredField("STREAM_SYSTEM_ENFORCED");
+				streamType = sseField.getInt(null);
+			} catch (final Exception e) {
+				streamType = AudioManager.STREAM_SYSTEM;	// set appropriate according to your app policy
+			}
+			if (mSoundPool != null) {
+				try {
+					mSoundPool.release();
+				} catch (final Exception e) {
+				}
+				mSoundPool = null;
+			}
+			// load sutter sound from resource
+			mSoundPool = new SoundPool(2, streamType, 0);
+			mSoundId = mSoundPool.load(context, R.raw.camera_click, 1);
 		}
 
 		@Override
@@ -679,6 +692,52 @@ public final class CameraServer extends Handler {
 			}
 			if (DEBUG) KLog.w(TAG_THREAD, "run:finished");
 		}
-	}
+
+        @Override
+        public void onCallback(int code) {
+            KLog.w(TAG, "推流onCallback: " + code);
+            switch (code) {
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
+                    KLog.w(TAG, "推流无效Key");
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
+                    KLog.w(TAG, "推流激活成功");
+                    synchronized (mSync) {
+//                        isPushing = true;
+                    }
+
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
+                    KLog.w(TAG, "推流连接中");
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
+                    KLog.w(TAG, "推流连接成功");
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
+                    KLog.w(TAG, "推流连接失败");
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
+                    KLog.w(TAG, "推流连接异常中断");
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
+                    KLog.w(TAG, "推流推流中");
+
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
+                    KLog.w(TAG, "推流断开连接");
+                    handleStopPush();
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
+                    KLog.w(TAG, "推流平台不匹配");
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
+                    KLog.w(TAG, "推流断授权使用商不匹配");
+                    break;
+                case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
+                    KLog.w(TAG, "推流进程名称长度不匹配");
+                    break;
+            }
+        }
+    }
 
 }

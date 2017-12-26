@@ -31,17 +31,18 @@ import android.os.Build;
 
 import com.serenegiant.app.UvcApp;
 import com.serenegiant.common.BuildConfig;
-import com.serenegiant.utils.Constants;
 import com.socks.library.KLog;
 
+import org.easydarwin.push.Constants;
 import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
+import org.easydarwin.push.Pusher;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 
-public abstract class MediaEncoder implements Runnable {
+public abstract class MediaEncoder implements Runnable, InitCallback {
 	private static final boolean DEBUG = true;	// TODO set false on release
 	private static final String TAG = "MediaEncoder";
 
@@ -103,9 +104,6 @@ public abstract class MediaEncoder implements Runnable {
 		muxer.addEncoder(this);
 		mListener = listener;
 
-		mPusher = new EasyPusher();
-		initEasyPusher(UvcApp.getApplication(), Constants.PUSHER_ADDR, Constants.PUSHER_PORT, 11);
-
 		synchronized (mSync) {
             // create BufferInfo here for effectiveness(to reduce GC)
             mBufferInfo = new MediaCodec.BufferInfo();
@@ -118,66 +116,81 @@ public abstract class MediaEncoder implements Runnable {
         }
 	}
 
-	private volatile boolean isPushing;
+	@Override
+	public void onCallback(int code) {
+		KLog.w(TAG, "推流onCallback: " + code);
+		switch (code) {
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
+				KLog.w(TAG, "推流无效Key");
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
+				KLog.w(TAG, "推流激活成功");
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
+				KLog.w(TAG, "推流连接中");
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
+				KLog.w(TAG, "推流连接成功");
+				isPushing = true;
+
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
+				KLog.w(TAG, "推流连接失败");
+//				isPushing = false;
+
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
+				KLog.w(TAG, "推流连接异常中断");
+//				isPushing = false;
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
+				KLog.w(TAG, "推流推流中");
+				isPushing = true;
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
+				KLog.w(TAG, "推流断开连接");
+//				isPushing = false;
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
+				KLog.w(TAG, "推流平台不匹配");
+//				isPushing = false;
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
+				KLog.w(TAG, "推流断授权使用商不匹配");
+//				isPushing = false;
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
+				KLog.w(TAG, "推流进程名称长度不匹配");
+//				isPushing = false;
+				break;
+		}
+	}
+
+	public static boolean isStartPush;	//是否开始推流
+	private volatile boolean isPushing;		//是否正在推流
 
 	/**
 	 * 初始化easypusher
 	 */
-	private void initEasyPusher(Context activity, String videoIp, int tcpPort, int cameraId) {
-		String id = "107700000088_" + cameraId;
+	protected void initEasyPusher(Context context, String videoIp, int tcpPort) {
+		if (mPusher == null) {
+			mPusher = new EasyPusher();
+		} else {
+			return;
+		}
+
+		String id = Constants.PUSHER_BACK_ID;
 		KLog.w(TAG, "推流: url: " + String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id));
-		mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id), Constants.KEY_EASYPUSHER,
-				activity, new InitCallback() {
-					@Override
-					public void onCallback(int code) {
-						KLog.w(TAG, "推流onCallback: " + code);
-						switch (code) {
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-								KLog.w(TAG, "推流无效Key");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-								KLog.w(TAG, "推流激活成功");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
-								KLog.w(TAG, "推流连接中");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
-								KLog.w(TAG, "推流连接成功");
-								isPushing = true;
 
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
-								KLog.w(TAG, "推流连接失败");
-								isPushing = false;
 
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
-								KLog.w(TAG, "推流连接异常中断");
-								isPushing = false;
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
-								KLog.w(TAG, "推流推流中");
-								isPushing = true;
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
-								KLog.w(TAG, "推流断开连接");
-								isPushing = false;
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-								KLog.w(TAG, "推流平台不匹配");
-								isPushing = false;
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-								KLog.w(TAG, "推流断授权使用商不匹配");
-								isPushing = false;
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-								KLog.w(TAG, "推流进程名称长度不匹配");
-								isPushing = false;
-								break;
-						}
-					}
-				});
+		//旧版本
+//		mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id),
+//                Constants.KEY_EASYPUSHER, context, this);
+
+		//新版本
+		mPusher.initPush(context.getApplicationContext(), this);
+		mPusher.setMediaInfo(Pusher.Codec.EASY_SDK_VIDEO_CODEC_H264, 25, Pusher.Codec.EASY_SDK_AUDIO_CODEC_AAC, 1, 8000, 16);
+		mPusher.start(videoIp, tcpPort + "", String.format("%s.sdp", id), Pusher.TransType.EASY_RTP_OVER_TCP);
 	}
 
     public String getOutputPath() {
@@ -519,6 +532,20 @@ public abstract class MediaEncoder implements Runnable {
 		byte[] h264 = new byte[320 * 240];
 
 LOOP:	while (mIsCapturing) {
+
+
+	if (isStartPush) {
+		initEasyPusher(UvcApp.getApplication(), Constants.PUSHER_ADDR, Constants.PUSHER_PORT);
+	} else {
+		//结束推流
+		isPushing = false;
+		if (mPusher != null) {
+			mPusher.stop();
+			mPusher = null;
+		}
+	}
+
+
 			// get encoded data with maximum timeout duration of TIMEOUT_USEC(=10[msec])
             encoderStatus = mMediaCodec.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
             if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
@@ -560,6 +587,9 @@ LOOP:	while (mIsCapturing) {
             	// unexpected status
             	if (DEBUG) KLog.w(TAG, "drain:unexpected result from encoder#dequeueOutputBuffer: " + encoderStatus);
             } else {
+
+//                KLog.w(TAG, "推流: " + isPushing + ", mpusher: "
+//                        + (mPusher == null ? "" : mPusher.getClass().getName()));
 
 				//推流
 				if (mPusher != null && isPushing) {
@@ -606,9 +636,11 @@ LOOP:	while (mIsCapturing) {
 						if (BuildConfig.DEBUG)
 							KLog.w(TAG, String.format("push video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
 					}
-				} else {
-					mPusher.stop();
-				}
+				} /*else {
+					if (mPusher != null) {
+						mPusher.stop();
+					}
+				}*/
 
 
 

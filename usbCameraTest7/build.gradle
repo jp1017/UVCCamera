@@ -40,6 +40,22 @@ android {
 		versionName "3.00"
     }
 
+    productFlavors {
+        armeabi_v7a {
+            manifestPlaceholders = [channel: "armeabi_v7a"]
+            ndk {
+                abiFilter "armeabi-v7a"
+            }
+        }
+
+        x86 {
+            manifestPlaceholders = [channel: "x86"]
+            ndk {
+                abiFilter "x86"
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true

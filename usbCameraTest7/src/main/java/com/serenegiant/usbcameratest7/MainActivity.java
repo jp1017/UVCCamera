@@ -31,6 +31,7 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -58,7 +59,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 
 	//带宽, 影响每包的最大数据量, 见libuvc/stream.c下函数uvc_stream_start_bandwidth
 	// TODO: 17-9-9 下午4:01 yuyv设置为1, mjpeg设置为0.5 来自:= https://github.com/saki4510t/UVCCamera/issues/231#issuecomment-328016969
-	private static final float[] BANDWIDTH_FACTORS = {0.5f, 1.0f};
+	private static final float[] BANDWIDTH_FACTORS = {0.5f, 0.5f};
 
 	private static final int WIDTH = UVCCamera.DEFAULT_PREVIEW_WIDTH / 2;
 	private static final int HEIGHT = UVCCamera.DEFAULT_PREVIEW_HEIGHT / 2;
@@ -81,11 +82,14 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
+		//屏幕常亮
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
 		//记录日志
-		startService(new Intent(this, LogService.class));
+//		startService(new Intent(this, LogService.class));
 
 		mWebcamPreview = (WebcamPreview) findViewById(R.id.camera_view_preview);
 
@@ -107,7 +111,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		mCaptureButtonR.setOnClickListener(mOnClickListener);
 		mCaptureButtonR.setVisibility(View.INVISIBLE);
 		mHandlerR = UVCCameraHandler.createHandler(this, mUVCCameraViewR, WIDTH,
-				HEIGHT, UVCCamera.FRAME_FORMAT_YUYV, BANDWIDTH_FACTORS[1]);
+				HEIGHT, UVCCamera.FRAME_FORMAT_MJPEG, BANDWIDTH_FACTORS[1]);
 
 		mUSBMonitor = new USBMonitor(this, mOnDeviceConnectListener);
 	}

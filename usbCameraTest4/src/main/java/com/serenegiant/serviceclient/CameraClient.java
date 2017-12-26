@@ -283,46 +283,46 @@ public class CameraClient implements ICameraClient {
 		@Override
 		public void handleMessage(final Message msg) {
 			switch (msg.what) {
-			case MSG_SELECT:
-				mCameraTask.handleSelect((UsbDevice)msg.obj);
-				break;
-			case MSG_CONNECT:
-				mCameraTask.handleConnect();
-				break;
-			case MSG_DISCONNECT:
-				mCameraTask.handleDisconnect();
-				break;
-			case MSG_ADD_SURFACE:
-				mCameraTask.handleAddSurface((Surface)msg.obj, msg.arg1 != 0);
-				break;
-			case MSG_REMOVE_SURFACE:
-				mCameraTask.handleRemoveSurface((Surface)msg.obj);
-				break;
-			case MSG_START_RECORDING:
-				mCameraTask.handleStartRecording();
-				break;
-			case MSG_STOP_RECORDING:
-				mCameraTask.handleStopRecording();
-				break;
-			case MSG_CAPTURE_STILL:
-				mCameraTask.handleCaptureStill((String)msg.obj);
-				break;
+				case MSG_SELECT:
+					mCameraTask.handleSelect((UsbDevice) msg.obj);
+					break;
+				case MSG_CONNECT:
+					mCameraTask.handleConnect();
+					break;
+				case MSG_DISCONNECT:
+					mCameraTask.handleDisconnect();
+					break;
+				case MSG_ADD_SURFACE:
+					mCameraTask.handleAddSurface((Surface) msg.obj, msg.arg1 != 0);
+					break;
+				case MSG_REMOVE_SURFACE:
+					mCameraTask.handleRemoveSurface((Surface) msg.obj);
+					break;
+				case MSG_START_RECORDING:
+					mCameraTask.handleStartRecording();
+					break;
+				case MSG_STOP_RECORDING:
+					mCameraTask.handleStopRecording();
+					break;
+				case MSG_CAPTURE_STILL:
+					mCameraTask.handleCaptureStill((String) msg.obj);
+					break;
 				case MSG_PUSH_START:
 					mCameraTask.handleStartPush((String) msg.obj);
 					break;
 				case MSG_PUSH_STOP:
 					mCameraTask.handleStopPush((String) msg.obj);
 					break;
-			case MSG_RESIZE:
-				mCameraTask.handleResize(msg.arg1, msg.arg2);
-				break;
-			case MSG_RELEASE:
-				mCameraTask.handleRelease();
-				mCameraTask = null;
-				Looper.myLooper().quit();
-				break;
-			default:
-				throw new RuntimeException("unknown message:what=" + msg.what);
+				case MSG_RESIZE:
+					mCameraTask.handleResize(msg.arg1, msg.arg2);
+					break;
+				case MSG_RELEASE:
+					mCameraTask.handleRelease();
+					mCameraTask = null;
+					Looper.myLooper().quit();
+					break;
+				default:
+					throw new RuntimeException("unknown message:what=" + msg.what);
 			}
 		}
 

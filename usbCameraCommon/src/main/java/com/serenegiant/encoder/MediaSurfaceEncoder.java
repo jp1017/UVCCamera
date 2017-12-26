@@ -23,9 +23,6 @@
 
 package com.serenegiant.encoder;
 
-import java.io.IOException;
-
-import android.app.Activity;
 import android.content.Context;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
@@ -33,6 +30,8 @@ import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.util.Log;
 import android.view.Surface;
+
+import java.io.IOException;
 
 public class MediaSurfaceEncoder extends MediaEncoder implements IVideoEncoder {
 	private static final boolean DEBUG = true;	// TODO set false on release
@@ -74,8 +73,9 @@ public class MediaSurfaceEncoder extends MediaEncoder implements IVideoEncoder {
 		if (DEBUG) Log.w(TAG, "selected codec: " + videoCodecInfo.getName());
 
         final MediaFormat format = MediaFormat.createVideoFormat(MIME_TYPE, mWidth, mHeight);
-        format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);	// API >= 18
-        format.setInteger(MediaFormat.KEY_BIT_RATE, calcBitRate());
+		format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);    // API >= 18
+		//配置码率
+		format.setInteger(MediaFormat.KEY_BIT_RATE, calcBitRate());
         format.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
         format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
 		if (DEBUG) Log.w(TAG, "format: " + format);
@@ -106,9 +106,16 @@ public class MediaSurfaceEncoder extends MediaEncoder implements IVideoEncoder {
 		super.release();
 	}
 
+	/**
+	 * 计算码率, 越大, 数据越大, 保存,上传就慢;越小,画面越不清晰
+	 * @return
+	 */
 	private int calcBitRate() {
-		final int bitrate = (int)(6 * mWidth * mHeight);
-		Log.w(TAG, String.format("bitrate=%5.2f[Mbps]", bitrate / 1024f / 1024f));
+		int bitrate = 3 * mWidth * mHeight;
+
+//		bitrate = 256000;
+
+		Log.w(TAG, String.format("bitrate=%5.2f[kbps]", bitrate / 1024f));
 		return bitrate;
 	}
 

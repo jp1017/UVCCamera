@@ -1796,7 +1796,12 @@ static int op_set_interface(struct libusb_device_handle *handle, int iface, int 
 	setintf.interface = iface;
 	setintf.altsetting = altsetting;
 	r = ioctl(fd, IOCTL_USBFS_SETINTF, &setintf);
+
+	LOGI("r=%d", r);
+
 	if (UNLIKELY(r)) {
+		LOGI("UNLIKELY=%d", r);
+
 		if (errno == EINVAL) {
 			RETURN(LIBUSB_ERROR_NOT_FOUND, int);
 		} else if (errno == ENODEV) {
@@ -1806,6 +1811,7 @@ static int op_set_interface(struct libusb_device_handle *handle, int iface, int 
 			"setintf failed error %d errno %d", r, errno);
 		RETURN(LIBUSB_ERROR_OTHER, int);
 	}
+	LOGI("LIBUSB_SUCCESS=%d", LIBUSB_SUCCESS);
 
 	RETURN(LIBUSB_SUCCESS, int);
 }
@@ -1815,7 +1821,9 @@ static int op_clear_halt(struct libusb_device_handle *handle,
 	const int fd = _device_handle_priv(handle)->fd;
 	unsigned int _endpoint = endpoint;
 	int r = ioctl(fd, IOCTL_USBFS_CLEAR_HALT, &_endpoint);
-	if (UNLIKELY(r)) {
+//    LOGI("op_clear_halt, r=%d, errno=%d----%s", r, errno, strerror(errno));
+
+    if (UNLIKELY(r)) {
 		if (errno == ENOENT)
 			return LIBUSB_ERROR_NOT_FOUND;
 		else if (errno == ENODEV)
@@ -1825,7 +1833,7 @@ static int op_clear_halt(struct libusb_device_handle *handle,
 			"clear_halt failed error %d errno %d", r, errno);
 		return LIBUSB_ERROR_OTHER;
 	}
-
+//    LOGI("op_clear_halt success=%d", LIBUSB_SUCCESS);
 	return LIBUSB_SUCCESS;
 }
 
@@ -2356,8 +2364,9 @@ static int submit_iso_transfer(struct usbi_transfer *itransfer) {
 
 	alloc_size = num_urbs * sizeof(*urbs);
 	urbs = calloc(1, alloc_size);
-	if (UNLIKELY(!urbs))
-		return LIBUSB_ERROR_NO_MEM;
+    if (UNLIKELY(!urbs)) {
+        return LIBUSB_ERROR_NO_MEM;
+    }
 
 	tpriv->iso_urbs = urbs;
 	tpriv->num_urbs = num_urbs;
@@ -2417,13 +2426,17 @@ static int submit_iso_transfer(struct usbi_transfer *itransfer) {
 	/* submit URBs (USB Request Block) */
 	for (i = 0; i < num_urbs; i++) {
 		int r = ioctl(dpriv->fd, IOCTL_USBFS_SUBMITURB, urbs[i]);
-		if (UNLIKELY(r < 0)) {
+//        LOGI("submiturb r=%d, errno=%d", r, errno);
+
+        //返回成功测试
+//        r = 0;
+        if (UNLIKELY(r < 0)) {
 			if (errno == ENODEV) {
 				r = LIBUSB_ERROR_NO_DEVICE;
 			} else {
 				usbi_err(TRANSFER_CTX(transfer),
 					"submiturb failed error %d errno=%d", r, errno);
-                LOGE("submiturb failed error %d errno=%d", r, errno);
+                LOGE("submiturb failed error %d errno=%d----%s", r, errno, strerror(errno));
 				r = LIBUSB_ERROR_IO;
                 //-ENOSPC		This request would overcommit the usb bandwidth reserved
                 //for periodic transfers (interrupt, isochronous).

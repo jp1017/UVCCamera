@@ -56,11 +56,11 @@ import android.os.StatFs;
 import android.os.StrictMode;
 import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.serenegiant.usbcameracommon.BuildConfig;
-import com.serenegiant.utils.Constants;
+import org.easydarwin.push.Constants;
 import com.serenegiant.utils.FileUtil;
+import com.socks.library.KLog;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -109,7 +109,7 @@ public class LogService extends Service {
 	private static final String MONITOR_LOG_SIZE_ACTION = "MONITOR_LOG_SIZE"; // 日志文件大小监测action
 
 	/**
-	 * logcat -v time *:D | grep -n '^.*\/.*(  828):' >> /sdcard/download/Log.log
+	 * logcat -v time *:D | grep -n '^.*\/.*(  828):' >> /sdcard/download/KLog.log
 	 */
 	private static final String LOG_FILTER_COMMAND_FORMAT =
 			"logcat -v time *:%s | grep '^.*\\/.*(%s):' >> %s";
@@ -137,7 +137,7 @@ public class LogService extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		Log.w(TAG, "-- onCreate() --");
+		KLog.w(TAG, "-- onCreate() --");
 		if (BuildConfig.DEBUG) {
 			StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 			StrictMode.setThreadPolicy(policy);
@@ -163,7 +163,7 @@ public class LogService extends Service {
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		Log.w(TAG, "-- onDestroy() --");
+		KLog.w(TAG, "-- onDestroy() --");
 		if (mProcess != null) {
 			mProcess.destroy();
 			mProcess = null;
@@ -186,7 +186,7 @@ public class LogService extends Service {
 
 		private LogCollectorThread() {
 			super("LogCollectorThread");
-			Log.w(TAG, "LogCollectorThread is create");
+			KLog.w(TAG, "LogCollectorThread is create");
 		}
 
 		@Override
@@ -214,7 +214,7 @@ public class LogService extends Service {
 	 * 每次记录日志之前先清除日志的缓存, 不然会在两个日志文件中记录重复的日志
 	 */
 	private void clearLogCache() {
-		Log.w(TAG, "-- clearLogCache() --");
+		KLog.w(TAG, "-- clearLogCache() --");
 		Process process = null;
 		final List<String> commandList = new ArrayList<>();
 		commandList.add("logcat");
@@ -226,17 +226,17 @@ public class LogService extends Service {
 			errorGobbler.start();
 			outputGobbler.start();
 			if (process.waitFor() != 0) {
-				Log.e(TAG, " clearLogCache mProcess.waitFor() != 0");
+				KLog.e(TAG, " clearLogCache mProcess.waitFor() != 0");
 			}
 		} catch (Exception e) {
-			Log.e(TAG, "clearLogCache failed", e);
+			KLog.e(TAG, "clearLogCache failed", e);
 		} finally {
 			try {
 				if (process != null) {
 					process.destroy();
 				}
 			} catch (Exception e) {
-				Log.e(TAG, "clearLogCache failed", e);
+				KLog.e(TAG, "clearLogCache failed", e);
 			}
 		}
 	}
@@ -248,10 +248,10 @@ public class LogService extends Service {
 	 * @return
 	 */
 	private void killLogcatProc(List<ProcessInfo> allProcList) {
-		Log.w(TAG, "-- killLogcatProc() --");
+		KLog.w(TAG, "-- killLogcatProc() --");
 
 		if (mProcess != null) {
-			Log.w(TAG, "-- killLogcatProc() -- mProcess.destroy();");
+			KLog.w(TAG, "-- killLogcatProc() -- mProcess.destroy();");
 
 			mProcess.destroy();
 			mProcess = null;
@@ -264,7 +264,7 @@ public class LogService extends Service {
 					&& processInfo.user.equalsIgnoreCase(myUser)
 					//20170628添加不要杀死系统进程
 					&& !processInfo.user.equalsIgnoreCase("system")) {
-				Log.w(TAG, "-- killLogcatProc() -- myUser: " + myUser);
+				KLog.w(TAG, "-- killLogcatProc() -- myUser: " + myUser);
 
 				android.os.Process.killProcess(Integer.parseInt(processInfo.pid));
 			}
@@ -331,17 +331,17 @@ public class LogService extends Service {
 			errorConsumer.start();
 			outputConsumer.start();
 			if (proc.waitFor() != 0) {
-				Log.e(TAG, "getAllProcess proc.waitFor() != 0");
+				KLog.e(TAG, "getAllProcess proc.waitFor() != 0");
 			}
 		} catch (Exception e) {
-			Log.e(TAG, "getAllProcess failed", e);
+			KLog.e(TAG, "getAllProcess failed", e);
 		} finally {
 			try {
                 if (proc != null) {
                     proc.destroy();
                 }
 			} catch (Exception e) {
-				Log.e(TAG, "getAllProcess failed", e);
+				KLog.e(TAG, "getAllProcess failed", e);
 			}
 		}
 		return orgProcList;
@@ -349,13 +349,13 @@ public class LogService extends Service {
 	
 	/**
      * 把命令结果写入文件
-	 * eg: logcat -v time *:D | grep -n '^.*\/.*(  828):' >> /sdcard/download/Log.log
+	 * eg: logcat -v time *:D | grep -n '^.*\/.*(  828):' >> /sdcard/download/KLog.log
 	 * @param priority
 	 * @param path
 	 * @return
 	 */
 	private String getLogFilterCommand(String priority, String path) {
-		Log.w(TAG, "-- getLogFilterCommand() --");
+		KLog.w(TAG, "-- getLogFilterCommand() --");
 		String sid = "" + android.os.Process.myPid();
 		for (int i = sid.length(); i < 5; i++) {
 			sid = " " + sid;
@@ -367,10 +367,10 @@ public class LogService extends Service {
 	 * 开始收集日志信息
 	 */
 	public void createLogCollector(final String path) {
-		Log.w(TAG, "-- createLogCollector() --: path: " + path);
+		KLog.w(TAG, "-- createLogCollector() --: path: " + path);
 		//日志保存到内存命令
 		String command = getLogFilterCommand(MONITOR_LOG_PRIORITY, path.replace(" ", "\\ "));
-		Log.w(TAG, "日志保存命令: " + command);
+		KLog.w(TAG, "日志保存命令: " + command);
 		List<String> commandList = new ArrayList<>();
 		commandList.add("sh");
 		commandList.add("-c");
@@ -379,7 +379,7 @@ public class LogService extends Service {
 			mProcess = Runtime.getRuntime().exec(commandList.toArray(new String[commandList.size()]));
 			// mProcess.waitFor();
 		} catch (Exception e) {
-			Log.e(TAG, "CollectorThread == >" + e.getMessage(), e);
+			KLog.e(TAG, "CollectorThread == >" + e.getMessage(), e);
 		}
 	}
 
@@ -387,7 +387,7 @@ public class LogService extends Service {
 	 * 处理日志文件 
 	 */
 	public void handleLog(String currFileName) {
-		Log.w(TAG, "-- handleLog() --");
+		KLog.w(TAG, "-- handleLog() --");
 		moveLogfile(currFileName);//将内存中日志文件转移到SD中，当前正在记录的日志文件除外
 		deleteMemoryExpiredLog(MEMORY_LOG_FILE_MAX_NUMBER, currFileName);//删除内存中过期的日志文件
 
@@ -402,7 +402,7 @@ public class LogService extends Service {
 	 * 检查日志文件大小是否超过了规定大小 如果超过了重新开启一个日志收集进程
 	 */
 	private void checLogSize() {
-		Log.w(TAG, "-- checLogSize() --");
+		KLog.w(TAG, "-- checLogSize() --");
 		if (!TextUtils.isEmpty(mCurrLogFileName)) {
 			String path = getMemoryFilePath(mCurrLogFileName);
 			File file = new File(path);
@@ -410,7 +410,7 @@ public class LogService extends Service {
 				return;
 			}
 			if (file.length() >= MEMORY_LOG_FILE_MAX_SIZE) {
-				Log.w(TAG, "The log's size is too big, 开始收集日志...");
+				KLog.w(TAG, "The log's size is too big, 开始收集日志...");
 				new LogCollectorThread().start();
 			}
 		}
@@ -420,7 +420,7 @@ public class LogService extends Service {
 	 * 将日志文件转移到SD卡下面
 	 */
 	private void moveLogfile(String currFileName) {
-		Log.w(TAG, "move file start, currFileName: " + currFileName);
+		KLog.w(TAG, "move file start, currFileName: " + currFileName);
 
 		if (!isSdcardAvailable()) {
 			return;
@@ -442,7 +442,7 @@ public class LogService extends Service {
 				return;
 			}
 			if (FileUtil.moveFile(logFile, new File(getSdcardFilePath(fileName)))) {
-				Log.w(TAG, "move file success, srcFile: " + logFile + ", destFile:" + getSdcardFilePath(fileName));
+				KLog.w(TAG, "move file success, srcFile: " + logFile + ", destFile:" + getSdcardFilePath(fileName));
 			}
 		}
 	}
@@ -451,23 +451,23 @@ public class LogService extends Service {
 	 * 删除SD内过期的日志
 	 */
 	private void deleteSdcardExpiredLog() {
-		Log.w(TAG, "-- deleteSdcardExpiredLog() --");
+		KLog.w(TAG, "-- deleteSdcardExpiredLog() --");
 		if (isSdcardAvailable()) {
 			File timeDir = new File(getSdcardDirPath());
 
 			File[] allFiles = timeDir.listFiles();
 			for (File logFile : allFiles) {
 				if (logFile.isDirectory()) {
-					Log.w(TAG, "-- deleteSdcardExpiredLog() -- logFileDir: " + logFile);
+					KLog.w(TAG, "-- deleteSdcardExpiredLog() -- logFileDir: " + logFile);
 
 					final String[] tmps = logFile.toString().split(Constants.LOG_FOLDER + File.separator);
 					if (tmps.length > 1) {
 						final String tmpDir = tmps[1].replace("-", "");
-						Log.w(TAG, "deleteSdcardExpiredLog: tmpDir: " + tmpDir);
+						KLog.w(TAG, "deleteSdcardExpiredLog: tmpDir: " + tmpDir);
 
 						final String deadTime = "20" + getMediaDateBeforeDay(SDCARD_LOG_FILE_SAVE_DAYS)
 								.substring(0, 6);
-						Log.w(TAG, "deleteSdcardExpiredLog: deadLine: " + deadTime);
+						KLog.w(TAG, "deleteSdcardExpiredLog: deadLine: " + deadTime);
 
 						//删除早期日志
 						if (TextUtils.isDigitsOnly(tmpDir)) {
@@ -521,11 +521,11 @@ public class LogService extends Service {
 		Date expiredDate = calendar.getTime();
 		try {
 			Date createDate = fileNameToDate(fileName);
-			Log.w(TAG, "createDate: " + createDate.toString() + ", expireTime: " + expiredDate.toString()
+			KLog.w(TAG, "createDate: " + createDate.toString() + ", expireTime: " + expiredDate.toString()
 					+ ", isBefore: " + createDate.before(expiredDate));
 			return createDate.before(expiredDate);
 		} catch (ParseException e) {
-			Log.e(TAG, e.getMessage());
+			KLog.e(TAG, e.getMessage());
 		}
 		return false;
 	}
@@ -535,7 +535,7 @@ public class LogService extends Service {
 	 * @param number 保留的文件个数
 	 */
 	private void deleteMemoryExpiredLog(int number, String currFileName) {
-		Log.w(TAG, "-- deleteMemoryExpiredLog() --");
+		KLog.w(TAG, "-- deleteMemoryExpiredLog() --");
 		File file = new File(getMemoryDirPath());
 		if (file.isDirectory()) {
 			File[] allFiles = file.listFiles();
@@ -546,7 +546,7 @@ public class LogService extends Service {
 					continue;
 				}
 				f.delete();
-				Log.w(TAG, "delete file success, file name is:" + f.getName());
+				KLog.w(TAG, "delete file success, file name is:" + f.getName());
 			}
 		}
 	}
@@ -606,14 +606,14 @@ public class LogService extends Service {
 		
 		public void onReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			Log.w(TAG, "mLogTaskReceiver： " + action);
+			KLog.w(TAG, "mLogTaskReceiver： " + action);
 			if (MONITOR_LOG_SIZE_ACTION.equals(action)) {
 				time2DeleteLogSd--;
 				checLogSize();
 			} else {
 				if (Intent.ACTION_TIME_CHANGED.equals(action)) {
 					if (canDeleteSDLog(mCurrLogFileName, SDCARD_LOG_FILE_SAVE_DAYS)) {
-						Log.w(TAG, "The log is out of date !");
+						KLog.w(TAG, "The log is out of date !");
 						new LogCollectorThread().start();
 					}
 				}
@@ -675,7 +675,7 @@ public class LogService extends Service {
 			try {
 				return f.exists() && f.isFile() || f.createNewFile();
 			} catch (IOException e) {
-				Log.w(TAG, e);
+				KLog.w(TAG, e);
 			}
 		}
 		return false;
@@ -690,7 +690,7 @@ public class LogService extends Service {
 	 */
 	private Date fileNameToDate(String fileName) throws ParseException {
 		fileName = fileName.substring(0, fileName.indexOf("."));//去除文件的扩展类型（.log）
-		Log.w(TAG, "fileName: " + fileName);
+		KLog.w(TAG, "fileName: " + fileName);
 		return DATE_FORMAT.parse(fileName);
 	}
 
@@ -719,7 +719,7 @@ public class LogService extends Service {
 	private String getMemoryDirPath() {
 		if (mLogFileDirMemory == null) {
 			mLogFileDirMemory = getFilesDir().getAbsolutePath() + File.separator + Constants.LOG_FOLDER;
-			Log.w(TAG, "memory dir: " + mLogFileDirMemory);
+			KLog.w(TAG, "memory dir: " + mLogFileDirMemory);
 			creatDir(mLogFileDirMemory);
 		}
 		return mLogFileDirMemory;
@@ -756,7 +756,7 @@ public class LogService extends Service {
 		String logFileDir = Environment.getExternalStorageDirectory().getAbsolutePath()
 				+ File.separator
 				+ Constants.LOG_FOLDER;
-		Log.w(TAG, "sdpath: " + logFileDir);
+		KLog.w(TAG, "sdpath: " + logFileDir);
 		creatDir(logFileDir);
 		return logFileDir;
 	}

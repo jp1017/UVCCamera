@@ -296,7 +296,8 @@ static int parse_interface(libusb_context *ctx,
 
 		/* Skip over any interface, class or vendor descriptors */
 		while (size >= LIBUSB_DT_HEADER_SIZE/*DESC_HEADER_LENGTH*/) {
-			usbi_parse_descriptor(buffer, "bb", &header, 0);
+			//添加返回值: https://github.com/saki4510t/UVCCamera/issues/181
+			int len = usbi_parse_descriptor(buffer, "bb", &header, 0);
 			if UNLIKELY(header.bLength < LIBUSB_DT_HEADER_SIZE/*DESC_HEADER_LENGTH*/) {
 				usbi_err(ctx,
 					 "invalid extra intf desc len (%d)",

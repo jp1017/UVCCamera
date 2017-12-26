@@ -53,11 +53,13 @@ public class CameraDialog extends DialogFragment {
 
 	public interface CameraDialogParent {
 		public USBMonitor getUSBMonitor();
+
 		public void onDialogResult(boolean canceled);
 	}
-	
+
 	/**
 	 * Helper method
+	 *
 	 * @param parent FragmentActivity
 	 * @return
 	 */
@@ -68,7 +70,7 @@ public class CameraDialog extends DialogFragment {
 		} catch (final IllegalStateException e) {
 			dialog = null;
 		}
-    	return dialog;
+		return dialog;
 	}
 
 	public static CameraDialog newInstance(/* add parameters here if you need */) {
@@ -91,19 +93,19 @@ public class CameraDialog extends DialogFragment {
 	@Override
 	public void onAttach(final Activity activity) {
 		super.onAttach(activity);
-       if (mUSBMonitor == null)
-        try {
-    		mUSBMonitor = ((CameraDialogParent)activity).getUSBMonitor();
-        } catch (final ClassCastException e) {
-    	} catch (final NullPointerException e) {
-        }
+		if (mUSBMonitor == null)
+			try {
+				mUSBMonitor = ((CameraDialogParent) activity).getUSBMonitor();
+			} catch (final ClassCastException e) {
+			} catch (final NullPointerException e) {
+			}
 		if (mUSBMonitor == null) {
-        	throw new ClassCastException(activity.toString() + " must implement CameraDialogParent#getUSBController");
+			throw new ClassCastException(activity.toString() + " must implement CameraDialogParent#getUSBController");
 		}
 	}
 
 	@Override
-    public void onCreate(Bundle savedInstanceState) {
+	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		if (savedInstanceState == null)
 			savedInstanceState = getArguments();
@@ -118,26 +120,27 @@ public class CameraDialog extends DialogFragment {
 	}
 
 	@Override
-    public Dialog onCreateDialog(final Bundle savedInstanceState) {
+	public Dialog onCreateDialog(final Bundle savedInstanceState) {
 		final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 		builder.setView(initView());
-    	builder.setTitle(R.string.select);
-	    builder.setPositiveButton(android.R.string.ok, mOnDialogClickListener);
-	    builder.setNegativeButton(android.R.string.cancel , mOnDialogClickListener);
-	    builder.setNeutralButton(R.string.refresh, null);
-	    final Dialog dialog = builder.create();
-	    dialog.setCancelable(true);
-	    dialog.setCanceledOnTouchOutside(true);
-        return dialog;
+		builder.setTitle(R.string.select);
+		builder.setPositiveButton(android.R.string.ok, mOnDialogClickListener);
+		builder.setNegativeButton(android.R.string.cancel, mOnDialogClickListener);
+		builder.setNeutralButton(R.string.refresh, null);
+		final Dialog dialog = builder.create();
+		dialog.setCancelable(true);
+		dialog.setCanceledOnTouchOutside(true);
+		return dialog;
 	}
 
 	/**
 	 * create view that this fragment shows
+	 *
 	 * @return
 	 */
 	private final View initView() {
 		final View rootView = getActivity().getLayoutInflater().inflate(R.layout.dialog_camera, null);
-		mSpinner = (Spinner)rootView.findViewById(R.id.spinner1);
+		mSpinner = (Spinner) rootView.findViewById(R.id.spinner1);
 		final View empty = rootView.findViewById(android.R.id.empty);
 		mSpinner.setEmptyView(empty);
 		return rootView;
@@ -148,19 +151,19 @@ public class CameraDialog extends DialogFragment {
 	public void onResume() {
 		super.onResume();
 		updateDevices();
-	    final Button button = (Button)getDialog().findViewById(android.R.id.button3);
-	    if (button != null) {
-	    	button.setOnClickListener(mOnClickListener);
-	    }
+		final Button button = (Button) getDialog().findViewById(android.R.id.button3);
+		if (button != null) {
+			button.setOnClickListener(mOnClickListener);
+		}
 	}
 
 	private final OnClickListener mOnClickListener = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
 			switch (v.getId()) {
-			case android.R.id.button3:
-				updateDevices();
-				break;
+				case android.R.id.button3:
+					updateDevices();
+					break;
 			}
 		}
 	};
@@ -169,23 +172,23 @@ public class CameraDialog extends DialogFragment {
 		@Override
 		public void onClick(final DialogInterface dialog, final int which) {
 			switch (which) {
-			case DialogInterface.BUTTON_POSITIVE:
-				final Object item = mSpinner.getSelectedItem();
-				if (item instanceof UsbDevice) {
-					mUSBMonitor.requestPermission((UsbDevice)item);
-					((CameraDialogParent)getActivity()).onDialogResult(false);
-				}
-				break;
-			case DialogInterface.BUTTON_NEGATIVE:
-				((CameraDialogParent)getActivity()).onDialogResult(true);
-				break;
+				case DialogInterface.BUTTON_POSITIVE:
+					final Object item = mSpinner.getSelectedItem();
+					if (item instanceof UsbDevice) {
+						mUSBMonitor.requestPermission((UsbDevice) item);
+						((CameraDialogParent) getActivity()).onDialogResult(false);
+					}
+					break;
+				case DialogInterface.BUTTON_NEGATIVE:
+					((CameraDialogParent) getActivity()).onDialogResult(true);
+					break;
 			}
 		}
 	};
 
 	@Override
 	public void onCancel(final DialogInterface dialog) {
-		((CameraDialogParent)getActivity()).onDialogResult(true);
+		((CameraDialogParent) getActivity()).onDialogResult(true);
 		super.onCancel(dialog);
 	}
 
@@ -201,7 +204,7 @@ public class CameraDialog extends DialogFragment {
 		private final LayoutInflater mInflater;
 		private final List<UsbDevice> mList;
 
-		public DeviceListAdapter(final Context context, final List<UsbDevice>list) {
+		public DeviceListAdapter(final Context context, final List<UsbDevice> list) {
 			mInflater = LayoutInflater.from(context);
 			mList = list != null ? list : new ArrayList<UsbDevice>();
 		}
@@ -231,9 +234,12 @@ public class CameraDialog extends DialogFragment {
 			}
 			if (convertView instanceof CheckedTextView) {
 				final UsbDevice device = getItem(position);
-				((CheckedTextView)convertView).setText(
-					String.format("UVC Camera:(%x:%x:%s)", device.getVendorId(), device.getProductId(), device.getDeviceName()));
+				((CheckedTextView) convertView).setText(
+						String.format("UVC Camera:(%x:%x:%s)", device.getVendorId(), device.getProductId(), device.getDeviceName()));
 			}
+
+			//修改文字大小
+			((CheckedTextView) convertView).setTextSize(14);
 			return convertView;
 		}
 	}

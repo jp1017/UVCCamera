@@ -33,11 +33,6 @@ import android.media.MediaFormat;
 import android.media.MediaRecorder;
 import android.util.Log;
 
-import com.serenegiant.utils.Constants;
-
-import org.easydarwin.push.EasyPusher;
-import org.easydarwin.push.InitCallback;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -57,9 +52,6 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 	private static final int FRAMES_PER_BUFFER = 25; 	// AAC, frame/buffer/sec
 
     private AudioThread mAudioThread = null;
-	private PushThread mPushThread = null;
-
-	private EasyPusher easyPusher;
 
 	protected MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
 	protected ByteBuffer[] mBuffers = null;
@@ -69,65 +61,11 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 		super(muxer, listener);
 	}
 
-	/**
-	 * 初始化easypusher
-	 */
-	private void initEasyPusher(Context activity, String videoIp, int tcpPort, int cameraId) {
-		easyPusher = new EasyPusher();
-		String id = "107700000088_" + cameraId;
-		Log.w(TAG, "推流: url: " + String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id));
-		easyPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id), Constants.KEY_EASYPUSHER,
-				activity, new InitCallback() {
-					@Override
-					public void onCallback(int code) {
-						Log.w(TAG, "推流onCallback: " + code);
-						switch (code) {
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-								Log.w(TAG, "推流无效Key");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-								Log.w(TAG, "推流激活成功");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
-								Log.w(TAG, "推流连接中");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
-								Log.w(TAG, "推流连接成功");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
-								Log.w(TAG, "推流连接失败");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
-								Log.w(TAG, "推流连接异常中断");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
-								Log.w(TAG, "推流推流中");
-									/*if (!isPushing) {
-										isPushing = true;
-									}*/
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
-								Log.w(TAG, "推流断开连接");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-								Log.w(TAG, "推流平台不匹配");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-								Log.w(TAG, "推流断授权使用商不匹配");
-								break;
-							case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-								Log.w(TAG, "推流进程名称长度不匹配");
-								break;
-						}
-					}
-				});
-	}
-
 	@Override
 	protected void prepare(Context activity) throws IOException {
 		Log.w(TAG, "prepare:");
 
-		initEasyPusher(activity, Constants.PUSHER_ADDR, Constants.PUSHER_PORT, 11);
+//		initEasyPusher(activity, Constants.PUSHER_ADDR, Constants.PUSHER_PORT);
 
         mTrackIndex = -1;
         mMuxerStarted = mIsEOS = false;
@@ -170,29 +108,16 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 	        mAudioThread = new AudioThread();
 			mAudioThread.start();
 		}*/
-
-		if (mPushThread == null) {
-			mPushThread = new PushThread();
-			mPushThread.start();
-		}
 	}
 
 	@Override
     protected void release() {
-		if (easyPusher != null) {
-			easyPusher.stop();
-			easyPusher = null;
-		}
 
 		if (mAudioThread != null) {
 			mAudioThread.interrupt();
 			mAudioThread = null;
 		}
 
-		if (mPushThread != null) {
-			mPushThread.interrupt();
-			mPushThread = null;
-		}
 		super.release();
     }
 
@@ -202,6 +127,7 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 		MediaRecorder.AudioSource.CAMCORDER,
 	};
 
+	@Deprecated
 	private class PushThread extends Thread {
 		@Override
 		public void run() {
@@ -239,10 +165,10 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 						mBuffer.position(7 + mBufferInfo.size);
 						addADTStoPacket(mBuffer.array(), mBufferInfo.size + 7);
 						mBuffer.flip();
-						if (easyPusher != null) {
+						/*if (easyPusher != null) {
 							easyPusher.push(mBuffer.array(), 0, mBufferInfo.size + 7,
 									mBufferInfo.presentationTimeUs / 1000, 0);
-						}
+						}*/
 						Log.w(TAG, String.format("push audio stamp:%d", mBufferInfo.presentationTimeUs / 1000));
 
 						encode(mBuffer, index, getPTSUs());
@@ -264,7 +190,10 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 					} else {
 						Log.e(TAG, "Message: " + index);
 					}
-				} while (mPushThread != null);
+				}
+
+//				while (mPushThread != null);
+				while (true);
 			} catch (final Exception e) {
 				Log.e(TAG, "PushThread#run", e);
 			} finally {

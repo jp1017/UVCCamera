@@ -23,15 +23,13 @@
 
 package com.serenegiant.usbcameratest4;
 
-import java.util.List;
-
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.SurfaceView;
 import android.view.View;
@@ -46,15 +44,16 @@ import com.serenegiant.common.BaseFragment;
 import com.serenegiant.encoder.MediaMuxerWrapper;
 import com.serenegiant.service.UVCService;
 import com.serenegiant.serviceclient.CameraClient;
-import com.serenegiant.serviceclient.ICameraClient;
 import com.serenegiant.serviceclient.ICameraClientCallback;
-
 import com.serenegiant.usb.CameraDialog;
 import com.serenegiant.usb.DeviceFilter;
 import com.serenegiant.usb.USBMonitor;
 import com.serenegiant.usb.USBMonitor.OnDeviceConnectListener;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.widget.CameraViewInterface;
+import com.socks.library.KLog;
+
+import java.util.List;
 
 public class CameraFragment extends BaseFragment {
 
@@ -75,7 +74,7 @@ public class CameraFragment extends BaseFragment {
 	private boolean isSubView;
 
 	public CameraFragment() {
-		if (DEBUG) Log.w(TAG, "Constructor:");
+		if (DEBUG) KLog.w(TAG, "Constructor:");
 //		setRetainInstance(true);
 	}
 
@@ -83,13 +82,13 @@ public class CameraFragment extends BaseFragment {
 	@Override
 	public void onAttach(final Activity activity) {
 		super.onAttach(activity);
-		if (DEBUG) Log.w(TAG, "onAttach:");
+		if (DEBUG) KLog.w(TAG, "onAttach:");
 	}
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		if (DEBUG) Log.w(TAG, "onCreate:");
+		if (DEBUG) KLog.w(TAG, "onCreate:");
 		if (mUSBMonitor == null) {
 			mUSBMonitor = new USBMonitor(getActivity().getApplicationContext(), mOnDeviceConnectListener);
 			final List<DeviceFilter> filters = DeviceFilter.getDeviceFilters(getActivity(), R.xml.device_filter);
@@ -99,7 +98,7 @@ public class CameraFragment extends BaseFragment {
 
 	@Override
 	public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
-		if (DEBUG) Log.w(TAG, "onCreateView:");
+		if (DEBUG) KLog.w(TAG, "onCreateView:");
 		final View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 		View view = rootView.findViewById(R.id.start_button);
 		view.setOnClickListener(mOnClickListener);
@@ -124,13 +123,13 @@ public class CameraFragment extends BaseFragment {
 	@Override
 	public void onResume() {
 		super.onResume();
-		if (DEBUG) Log.w(TAG, "onResume:");
+		if (DEBUG) KLog.w(TAG, "onResume:");
 		mUSBMonitor.register();
 	}
 
 	@Override
 	public void onPause() {
-		if (DEBUG) Log.w(TAG, "onPause:");
+		if (DEBUG) KLog.w(TAG, "onPause:");
 		if (mCameraClient != null) {
 			mCameraClient.removeSurface(mCameraView.getSurface());
 			mCameraClient.removeSurface(mCameraViewSub.getHolder().getSurface());
@@ -143,13 +142,13 @@ public class CameraFragment extends BaseFragment {
 
 	@Override
 	public void onDestroyView() {
-		if (DEBUG) Log.w(TAG, "onDestroyView:");
+		if (DEBUG) KLog.w(TAG, "onDestroyView:");
 		super.onDestroyView();
 	}
 
 	@Override
 	public void onDestroy() {
-		if (DEBUG) Log.w(TAG, "onDestroy:");
+		if (DEBUG) KLog.w(TAG, "onDestroy:");
 		if (mCameraClient != null) {
 			mCameraClient.release();
 			mCameraClient = null;
@@ -159,7 +158,7 @@ public class CameraFragment extends BaseFragment {
 
 	@Override
 	public void onDetach() {
-		if (DEBUG) Log.w(TAG, "onDetach:");
+		if (DEBUG) KLog.w(TAG, "onDetach:");
 		super.onDetach();
 	}
 
@@ -170,7 +169,7 @@ public class CameraFragment extends BaseFragment {
 	private final OnDeviceConnectListener mOnDeviceConnectListener = new OnDeviceConnectListener() {
 		@Override
 		public void onAttach(final UsbDevice device) {
-			if (DEBUG) Log.w(TAG, "OnDeviceConnectListener#onAttach:");
+			if (DEBUG) KLog.w(TAG, "OnDeviceConnectListener#onAttach:");
 			if (!updateCameraDialog() && (mCameraView.hasSurface())) {
 				tryOpenUVCCamera(true);
 			}
@@ -178,17 +177,17 @@ public class CameraFragment extends BaseFragment {
 
 		@Override
 		public void onConnect(final UsbDevice device, final UsbControlBlock ctrlBlock, final boolean createNew) {
-			if (DEBUG) Log.w(TAG, "OnDeviceConnectListener#onConnect:");
+			if (DEBUG) KLog.w(TAG, "OnDeviceConnectListener#onConnect:");
 		}
 
 		@Override
 		public void onDisconnect(final UsbDevice device, final UsbControlBlock ctrlBlock) {
-			if (DEBUG) Log.w(TAG, "OnDeviceConnectListener#onDisconnect:");
+			if (DEBUG) KLog.w(TAG, "OnDeviceConnectListener#onDisconnect:");
 		}
 
 		@Override
 		public void onDettach(final UsbDevice device) {
-			if (DEBUG) Log.w(TAG, "OnDeviceConnectListener#onDettach:");
+			if (DEBUG) KLog.w(TAG, "OnDeviceConnectListener#onDettach:");
 			queueEvent(new Runnable() {
 				@Override
 				public void run() {
@@ -205,7 +204,7 @@ public class CameraFragment extends BaseFragment {
 
 		@Override
 		public void onCancel(final UsbDevice device) {
-			if (DEBUG) Log.w(TAG, "OnDeviceConnectListener#onCancel:");
+			if (DEBUG) KLog.w(TAG, "OnDeviceConnectListener#onCancel:");
 			enableButtons(false);
 		}
 	};
@@ -220,12 +219,12 @@ public class CameraFragment extends BaseFragment {
 	}
 
 	private void tryOpenUVCCamera(final boolean requestPermission) {
-		if (DEBUG) Log.w(TAG, "tryOpenUVCCamera:");
+		if (DEBUG) KLog.w(TAG, "tryOpenUVCCamera:");
 		openUVCCamera(0);
 	}
 
 	private void openUVCCamera(final int index) {
-		if (DEBUG) Log.w(TAG, "openUVCCamera:index=" + index);
+		if (DEBUG) KLog.w(TAG, "openUVCCamera:index=" + index);
 		if (!mUSBMonitor.isRegistered()) return;
 		final List<UsbDevice> list = mUSBMonitor.getDeviceList();
 		if (list.size() > index) {
@@ -241,7 +240,7 @@ public class CameraFragment extends BaseFragment {
 	private final ICameraClientCallback mCameraListener = new ICameraClientCallback() {
 		@Override
 		public void onConnect() {
-			if (DEBUG) Log.w(TAG, "onConnect:");
+			if (DEBUG) KLog.w(TAG, "onConnect:");
 			if (mCameraView == null || mCameraViewSub == null) {
 				return;
 			}
@@ -258,7 +257,7 @@ public class CameraFragment extends BaseFragment {
 
 		@Override
 		public void onDisconnect() {
-			if (DEBUG) Log.w(TAG, "onDisconnect:");
+			if (DEBUG) KLog.w(TAG, "onDisconnect:");
 			setPreviewButton(false);
 			enableButtons(false);
 		}
@@ -270,7 +269,7 @@ public class CameraFragment extends BaseFragment {
 		public void onClick(final View v) {
 			switch (v.getId()) {
 			case R.id.start_button:
-				if (DEBUG) Log.w(TAG, "onClick:start");
+				if (DEBUG) KLog.w(TAG, "onClick:start");
 				// start service
 				final List<UsbDevice> list = mUSBMonitor.getDeviceList();
 				if (list.size() > 0) {
@@ -283,7 +282,7 @@ public class CameraFragment extends BaseFragment {
 				}
 				break;
 			case R.id.stop_button:
-				if (DEBUG) Log.w(TAG, "onClick:stop");
+				if (DEBUG) KLog.w(TAG, "onClick:stop");
 				// stop service
 				if (mCameraClient != null) {
 					mCameraClient.disconnect();
@@ -293,7 +292,7 @@ public class CameraFragment extends BaseFragment {
 				enableButtons(false);
 				break;
 			case R.id.camera_view_sub:
-				if (DEBUG) Log.w(TAG, "onClick:sub view");
+				if (DEBUG) KLog.w(TAG, "onClick:sub view");
 				if (isSubView) {
 					mCameraClient.removeSurface(mCameraViewSub.getHolder().getSurface());
 				} else {
@@ -302,8 +301,9 @@ public class CameraFragment extends BaseFragment {
 				isSubView = !isSubView;
 				break;
 			case R.id.record_button:
-				if (DEBUG) Log.w(TAG, "onClick:record");
+				if (DEBUG) KLog.w(TAG, "onClick:record");
 				if (checkPermissionWriteExternalStorage() && checkPermissionAudio()) {
+
 					queueEvent(new Runnable() {
 						@Override
 						public void run() {
@@ -333,7 +333,7 @@ public class CameraFragment extends BaseFragment {
 				}
 				break;
 			case R.id.still_button:
-				if (DEBUG) Log.w(TAG, "onClick:still capture");
+				if (DEBUG) KLog.w(TAG, "onClick:still capture");
 				if (mCameraClient != null && checkPermissionWriteExternalStorage()) {
 					queueEvent(new Runnable() {
 						@Override
@@ -351,7 +351,7 @@ public class CameraFragment extends BaseFragment {
 	private final OnCheckedChangeListener mOnCheckedChangeListener = new OnCheckedChangeListener() {
 		@Override
 		public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
-			if (DEBUG) Log.w(TAG, "onCheckedChanged:" + isChecked);
+			if (DEBUG) KLog.w(TAG, "onCheckedChanged:" + isChecked);
 			if (isChecked) {
 				mCameraClient.addSurface(mCameraView.getSurface(), false);
 //				mCameraClient.addSurface(mCameraViewSub.getHolder().getSurface(), false);

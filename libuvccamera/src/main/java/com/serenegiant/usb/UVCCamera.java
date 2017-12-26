@@ -178,7 +178,8 @@ public class UVCCamera {
      */
     public UVCCamera() {
     	mNativePtr = nativeCreate();
-    	mSupportedSize = null;
+		Log.w(TAG, "mNativePtr: " + mNativePtr);
+		mSupportedSize = null;
 	}
 
     /**

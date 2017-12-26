@@ -107,6 +107,9 @@ enum uvc_frame_format {
 	UVC_FRAME_FORMAT_BY8,
 	/** Number of formats understood */
 	UVC_FRAME_FORMAT_COUNT,
+
+	//添加h264 https://github.com/saki4510t/UVCCamera/issues/204
+			UVC_FRAME_FORMAT_BASED,
 };
 
 /* UVC_COLOR_FORMAT_* have been replaced with UVC_FRAME_FORMAT_*. Please use

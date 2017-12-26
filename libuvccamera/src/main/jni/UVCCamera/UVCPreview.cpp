@@ -26,7 +26,7 @@
 #include <linux/time.h>
 #include <unistd.h>
 
-#if 1	// set 1 if you don't need debug log
+#if 0	// set 1 if you don't need debug log
 	#ifndef LOG_NDEBUG
 		#define	LOG_NDEBUG		// w/o LOGV/LOGD/MARK
 	#endif
@@ -41,7 +41,7 @@
 #include "UVCPreview.h"
 #include "libuvc_internal.h"
 
-#define	LOCAL_DEBUG 0
+#define	LOCAL_DEBUG 1
 #define MAX_FRAME 4
 #define PREVIEW_PIXEL_BYTES 4	// RGBA/RGBX
 #define FRAME_POOL_SZ MAX_FRAME + 2
@@ -115,10 +115,14 @@ uvc_frame_t *UVCPreview::get_frame(size_t data_bytes) {
 		}
 	}
 	pthread_mutex_unlock(&pool_mutex);
+
 	if UNLIKELY(!frame) {
 		LOGW("allocate new frame");
 		frame = uvc_allocate_frame(data_bytes);
 	}
+
+//	LOGI("allocate frame=%d:", frame);
+
 	return frame;
 }
 
@@ -255,7 +259,7 @@ void UVCPreview::callbackPixelFormatChanged() {
 	const size_t sz = requestWidth * requestHeight;
 	switch (mPixelFormat) {
 	  case PIXEL_FORMAT_RAW:
-		LOGI("PIXEL_FORMAT_RAW:");
+		LOGI("PIXEL_FORMAT_RAW:equal YUV");
 		callbackPixelBytes = sz * 2;
 		break;
 	  case PIXEL_FORMAT_YUV:
@@ -434,16 +438,26 @@ void UVCPreview::addPreviewFrame(uvc_frame_t *frame) {
 uvc_frame_t *UVCPreview::waitPreviewFrame() {
 	uvc_frame_t *frame = NULL;
 	pthread_mutex_lock(&preview_mutex);
-	{
+//    LOGW("waitPreviewFrame!size=%d", previewFrames.size());
+
+    {
 		if (!previewFrames.size()) {
-			pthread_cond_wait(&preview_sync, &preview_mutex);
-		}
-		if (LIKELY(isRunning() && previewFrames.size() > 0)) {
+//            LOGW("waitPreviewFrame!111");
+
+            pthread_cond_wait(&preview_sync, &preview_mutex);
+//            LOGW("waitPreviewFrame!222");
+
+        }
+//        LOGW("waitPreviewFrame!333");
+
+        if (LIKELY(isRunning() && previewFrames.size() > 0)) {
 			frame = previewFrames.remove(0);
 		}
 	}
 	pthread_mutex_unlock(&preview_mutex);
-	return frame;
+//    LOGW("waitPreviewFrame!frame=%d", frame);
+
+    return frame;
 }
 
 void UVCPreview::clearPreviewFrame() {
@@ -509,6 +523,35 @@ int UVCPreview::prepare_preview(uvc_stream_ctrl_t *ctrl) {
 	RETURN(result, int);
 }
 
+
+void UVCPreview::do_h264_callback (uvc_frame_t *frame) {
+    ENTER();
+    JavaVM *vm = getVM();
+    JNIEnv *env;
+// attach to JavaVM
+    vm->AttachCurrentThread(&env, NULL);
+    if(!mH264CallbackObj){
+        LOGE("this is mH264CallbackObj is not null");
+    }
+    if (LIKELY(frame)) {
+        if(LIKELY(env)){
+            LOGE("this is do_h264_callback44###");
+        }
+
+        int buffSize = frame->width * frame->height * 3 / 2;
+
+        jobject buf = env->NewDirectByteBuffer(frame->data, buffSize);
+
+        //TODO hh264数据处理
+//        copy_frame(frame->data,frame->actual_bytes);
+
+//        env->CallVoidMethod(mH264CallbackObj, iH264callback_fields.onTest,frame->actual_bytes);
+        env->ExceptionClear();
+        env->DeleteLocalRef(buf);
+        EXIT();
+    }
+}
+
 void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 	ENTER();
 
@@ -522,13 +565,16 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 		pthread_create(&capture_thread, NULL, capture_thread_func, (void *)this);
 
 #if LOCAL_DEBUG
-		LOGI("Streaming...");
+		LOGI("Streaming...frameMode=%d", frameMode);
 #endif
-		if (frameMode) {
+		if (frameMode == 1) {
 			// MJPEG mode
 			for ( ; LIKELY(isRunning()) ; ) {
-				frame_mjpeg = waitPreviewFrame();
-				if (LIKELY(frame_mjpeg)) {
+//                LOGI("Streaming...MJPEG running");
+                frame_mjpeg = waitPreviewFrame();
+//                LOGI("Streaming...MJPEG frame_mjpeg=%d", frame_mjpeg);
+
+                if (LIKELY(frame_mjpeg)) {
 					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 2);
 					result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
 					recycle_frame(frame_mjpeg);
@@ -540,17 +586,34 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 					}
 				}
 			}
-		} else {
+		} else if (frameMode == 0){
 			// yuvyv mode
 			for ( ; LIKELY(isRunning()) ; ) {
-				frame = waitPreviewFrame();
-				if (LIKELY(frame)) {
+//                LOGI("Streaming...yuvyv running");
+
+                frame = waitPreviewFrame();
+//                LOGI("Streaming...yuvyv frame=%d", frame);
+
+                if (LIKELY(frame)) {
 					frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
 					addCaptureFrame(frame);
 				}
 			}
-		}
-		pthread_cond_signal(&capture_sync);
+        } else {
+            //h264压缩
+            LOGI("Streaming...h264 running");
+
+            for (; LIKELY(isRunning());) {
+                frame = waitPreviewFrame();
+                if (LIKELY(frame)) {
+                    do_h264_callback(frame);
+                }
+            }
+        }
+
+        LOGI("frame=%d", frame);
+
+        pthread_cond_signal(&capture_sync);
 #if LOCAL_DEBUG
 		LOGI("preview_thread_func:wait for all callbacks complete");
 #endif
@@ -559,6 +622,7 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 		LOGI("Streaming finished");
 #endif
 	} else {
+		LOGE("failed start_streaming");
 		uvc_perror(result, "failed start_streaming");
 	}
 
@@ -637,7 +701,7 @@ uvc_frame_t *UVCPreview::draw_preview_one(uvc_frame_t *frame, ANativeWindow **wi
 		uvc_frame_t *converted;
 		if (convert_func) {
 			converted = get_frame(frame->width * frame->height * pixcelBytes);
-			if LIKELY(converted) {
+			if (LIKELY(converted)) {
 				b = convert_func(frame, converted);
 				if (!b) {
 					pthread_mutex_lock(&preview_mutex);
@@ -855,11 +919,11 @@ void UVCPreview::do_capture_callback(JNIEnv *env, uvc_frame_t *frame) {
 					int b = mFrameCallbackFunc(frame, callback_frame);
 					recycle_frame(frame);
 					if (UNLIKELY(b)) {
-						LOGW("failed to convert for callback frame");
+						LOGE("failed to convert for callback frame");
 						goto SKIP;
 					}
 				} else {
-					LOGW("failed to allocate for callback frame");
+					LOGE("failed to allocate for callback frame");
 					callback_frame = frame;
 					goto SKIP;
 				}
