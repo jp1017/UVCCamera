@@ -107,11 +107,11 @@ public class MediaSurfaceEncoder extends MediaEncoder implements IVideoEncoder {
 	}
 
 	/**
-	 * 计算码率, 越大, 数据越大, 保存,上传就慢;越小,画面越不清晰
+	 * todo 计算码率, 越大, 数据越大, 保存,上传就慢;越小,画面越不清晰
 	 * @return
 	 */
 	private int calcBitRate() {
-		int bitrate = 3 * mWidth * mHeight;
+		int bitrate = 1 * mWidth * mHeight;
 
 //		bitrate = 256000;
 

@@ -33,7 +33,7 @@ public class TextStreamObject extends StreamObjectBase {
   public void load(String text, float textSize, int textColor) throws IOException {
     numFrames = 1;
     imageBitmap = textAsBitmap(text, textSize, textColor);
-    Log.i(TAG, "finish load text");
+    Log.w(TAG, "finish load text");
   }
 
   @Override

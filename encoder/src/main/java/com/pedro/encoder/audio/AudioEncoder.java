@@ -7,6 +7,8 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 import com.pedro.encoder.input.audio.GetMicrophoneData;
+import com.pedro.encoder.utils.Constants;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -71,7 +73,7 @@ public class AudioEncoder implements GetMicrophoneData {
       mPresentTimeUs = System.nanoTime() / 1000;
       audioEncoder.start();
       running = true;
-      Log.i(TAG, "AudioEncoder started");
+      Log.w(TAG, "AudioEncoder started");
     } else {
       Log.e(TAG, "AudioEncoder need be prepared, AudioEncoder not enabled");
     }
@@ -84,7 +86,7 @@ public class AudioEncoder implements GetMicrophoneData {
       audioEncoder.release();
       audioEncoder = null;
     }
-    Log.i(TAG, "AudioEncoder stopped");
+    Log.w(TAG, "AudioEncoder stopped");
   }
 
   /**
@@ -115,7 +117,7 @@ public class AudioEncoder implements GetMicrophoneData {
     }
 
     for (; ; ) {
-      int outBufferIndex = audioEncoder.dequeueOutputBuffer(audioInfo, 0);
+      int outBufferIndex = audioEncoder.dequeueOutputBuffer(audioInfo, Constants.TIMEOUT);
       if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
         getAacData.onAudioFormat(audioEncoder.getOutputFormat());
       } else if (outBufferIndex >= 0) {
@@ -143,7 +145,7 @@ public class AudioEncoder implements GetMicrophoneData {
     }
 
     for (; ; ) {
-      int outBufferIndex = audioEncoder.dequeueOutputBuffer(audioInfo, 0);
+      int outBufferIndex = audioEncoder.dequeueOutputBuffer(audioInfo, Constants.TIMEOUT);
       if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
         getAacData.onAudioFormat(audioEncoder.getOutputFormat());
       } else if (outBufferIndex >= 0) {

@@ -29,7 +29,6 @@ import android.media.MediaFormat;
 import android.os.Build;
 import android.util.Pair;
 
-import com.pedro.rtsp.rtsp.Protocol;
 import com.pedro.rtsp.rtsp.RtspClient;
 import com.pedro.rtsp.utils.ConnectCheckerRtsp;
 import com.serenegiant.app.UvcApp;
@@ -38,18 +37,23 @@ import com.socks.library.KLog;
 import org.easydarwin.push.Constants;
 import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
+import org.easydarwin.push.Pusher;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 
-public abstract class MediaEncoder implements Runnable, InitCallback {
+public abstract class MediaEncoder implements Runnable, InitCallback, ConnectCheckerRtsp {
 	private static final boolean DEBUG = true;	// TODO set false on release
 	private static final String TAG = "MediaEncoder";
 
 	protected static final int TIMEOUT_USEC = 10000;	// 10[msec]
 	protected static final int MSG_FRAME_AVAILABLE = 1;
 	protected static final int MSG_STOP_RECORDING = 9;
+
+	private static final boolean USEEASYPUSHER = true;  //是否使用easypusher
+	private static final boolean BACK_CAMERA = false;    //是否使用后置拍摄
+
 
 	public interface MediaEncoderListener {
 		public void onPrepared(MediaEncoder encoder);
@@ -118,121 +122,126 @@ public abstract class MediaEncoder implements Runnable, InitCallback {
         }
 	}
 
-	@Override
-	public void onCallback(int code) {
-		KLog.w(TAG, "pushing onCallback: " + code);
-		switch (code) {
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-				KLog.w(TAG, "pushing invalid Key");
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-				KLog.w(TAG, "pushing 激活成功");
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
-				KLog.w(TAG, "pushing connecting");
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
-				KLog.w(TAG, "pushing connect success");
-				isPushing = true;
+    @Override
+    public void onCallback(int code) {
+        KLog.w(TAG, "pushing onCallback: " + code);
+        switch (code) {
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
+                KLog.w(TAG, "pushing invalid Key");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
+                KLog.w(TAG, "pushing 激活成功");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
+                KLog.w(TAG, "pushing connecting");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
+                KLog.w(TAG, "pushing connect success");
+                isPushing = true;
 
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
-				KLog.w(TAG, "pushing connect failed");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
+                KLog.w(TAG, "pushing connect failed");
 //				isPushing = false;
 
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
-				KLog.w(TAG, "pushing 连接异常中断");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
+                KLog.w(TAG, "pushing 连接异常中断");
 //				isPushing = false;
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
-				KLog.w(TAG, "pushing pushing");
-				isPushing = true;
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
-				KLog.w(TAG, "pushing 断开连接");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
+                KLog.w(TAG, "pushing pushing");
+                isPushing = true;
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
+                KLog.w(TAG, "pushing 断开连接");
 //				isPushing = false;
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-				KLog.w(TAG, "pushing 平台不匹配");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
+                KLog.w(TAG, "pushing 平台不匹配");
 //				isPushing = false;
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-				KLog.w(TAG, "pushing 断授权使用商不匹配");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
+                KLog.w(TAG, "pushing 断授权使用商不匹配");
 //				isPushing = false;
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-				KLog.w(TAG, "pushing 进程名称长度不匹配");
+                break;
+            case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
+                KLog.w(TAG, "pushing 进程名称长度不匹配");
 //				isPushing = false;
-				break;
-		}
-	}
+                break;
+        }
+    }
+
+
+    @Override
+    public void onConnectionSuccessRtsp() {
+        KLog.w(TAG, "pushing  connect success");
+        isPushing = true;
+    }
+
+    @Override
+    public void onConnectionFailedRtsp(String reason) {
+        KLog.w(TAG, "pushing  connect failed");
+        isPushing = false;
+
+    }
+
+    @Override
+    public void onDisconnectRtsp() {
+        KLog.w(TAG, "pushing  disconnect");
+        isPushing = false;
+
+    }
+
+    @Override
+    public void onAuthErrorRtsp() {
+        KLog.w(TAG, "pushing  auth failed");
+        isPushing = true;
+
+    }
+
+    @Override
+    public void onAuthSuccessRtsp() {
+        KLog.w(TAG, "pushing  auth success");
+
+    }
 
 	public static boolean isStartPush;	//是否开始pushing 
 	private volatile boolean isPushing;		//是否正在pushing 
 
-	/**
-	 * 初始化easypusher
-	 */
-	protected void initEasyPusher(Context context, String videoIp, int tcpPort) {
-        if (mRtspClient != null) {
-            return;
+    /**
+     * 初始化rtsp
+     */
+    protected void initRtspClient(Context context, String videoIp, int tcpPort) {
+        if (USEEASYPUSHER) {
+            if (mPusher == null) {
+                mPusher = new EasyPusher();
+
+                String id = BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID;
+                KLog.w(TAG, "pushing : url: " + String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id));
+
+                //新版本
+                mPusher.initPush(context.getApplicationContext(), this);
+                mPusher.setMediaInfo(Pusher.Codec.EASY_SDK_VIDEO_CODEC_H264, 25, Pusher.Codec.EASY_SDK_AUDIO_CODEC_AAC, 1, 8000, 16);
+                mPusher.start(videoIp, tcpPort + "", String.format("%s.sdp", id), Pusher.TransType.EASY_RTP_OVER_TCP);
+
+            } else {
+                return;
+            }
+        } else {
+            if (mRtspClient != null) {
+                return;
+            }
+            mRtspClient = new RtspClient(this);
+
+            mRtspClient.setUrl("rtsp://" + Constants.PUSHER_ADDR + ":" + Constants.PUSHER_PORT
+                    + "/" + (BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID)
+                    + ".sdp");
+
+            mRtspClient.connect();
         }
 
-        mRtspClient = new RtspClient(new ConnectCheckerRtsp() {
-			@Override
-			public void onConnectionSuccessRtsp() {
-				KLog.w(TAG, "pushing  connect success");
-                isPushing = true;
-
-			}
-
-			@Override
-			public void onConnectionFailedRtsp(String reason) {
-				KLog.w(TAG, "pushing  connect failed");
-                isPushing = false;
-
-			}
-
-			@Override
-			public void onDisconnectRtsp() {
-				KLog.w(TAG, "pushing  disconnect");
-                isPushing = false;
-
-			}
-
-			@Override
-			public void onAuthErrorRtsp() {
-				KLog.w(TAG, "pushing  auth failed");
-                isPushing = true;
-
-			}
-
-			@Override
-			public void onAuthSuccessRtsp() {
-				KLog.w(TAG, "pushing  auth success");
-
-			}
-		});
-
-        mRtspClient.setUrl("rtsp://139.224.226.23:10554/107700000016_11.sdp");
-        mRtspClient.connect();
-
-        /*if (mPusher == null) {
-			mPusher = new EasyPusher();
-		} else {
-			return;
-		}
-
-		String id = Constants.PUSHER_BACK_ID;
-		KLog.w(TAG, "pushing : url: " + String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id));
-
-		//新版本
-		mPusher.initPush(context.getApplicationContext(), this);
-		mPusher.setMediaInfo(Pusher.Codec.EASY_SDK_VIDEO_CODEC_H264, 25, Pusher.Codec.EASY_SDK_AUDIO_CODEC_AAC, 1, 8000, 16);
-		mPusher.start(videoIp, tcpPort + "", String.format("%s.sdp", id), Pusher.TransType.EASY_RTP_OVER_TCP);
-		*/
-	}
+    }
 
     public String getOutputPath() {
     	final MediaMuxerWrapper muxer = mWeakMuxer.get();
@@ -496,11 +505,14 @@ public abstract class MediaEncoder implements Runnable, InitCallback {
         	return;
         }
 
+        byte[] mPpsSps = new byte[0];
+        byte[] h264 = new byte[320 * 240];
+
 LOOP:	while (mIsCapturing) {
 
 
 	if (isStartPush) {
-		initEasyPusher(UvcApp.getApplication(), Constants.PUSHER_ADDR, Constants.PUSHER_PORT);
+		initRtspClient(UvcApp.getApplication(), Constants.PUSHER_ADDR, Constants.PUSHER_PORT);
 	} else {
 		//结束pushing 
 		isPushing = false;
@@ -508,7 +520,12 @@ LOOP:	while (mIsCapturing) {
 			mPusher.stop();
 			mPusher = null;
 		}
-	}
+
+        if (mRtspClient != null && mRtspClient.isStreaming()) {
+            mRtspClient.disconnect();
+            mRtspClient = null;
+        }
+    }
 
 
 			// get encoded data with maximum timeout duration of TIMEOUT_USEC(=10[msec])
@@ -550,17 +567,21 @@ LOOP:	while (mIsCapturing) {
 					}
 				}
 
-                mRtspClient.setSPSandPPS(mediaFormat.getByteBuffer("csd-0"),
-                        mediaFormat.getByteBuffer("csd-1"));
-                spsPpsSetted = true;
-				mRtspClient.connect();
+                if (!USEEASYPUSHER) {
+                    mRtspClient.setSPSandPPS(mediaFormat.getByteBuffer("csd-0"),
+                            mediaFormat.getByteBuffer("csd-1"));
+                    spsPpsSetted = true;
+                    mRtspClient.connect();
+
+                }
+
 
 
 			} else {
 				if (encoderStatus < 0) {
 					// unexpected status
 					if (DEBUG)
-						KLog.w(TAG, "drain:unexpected result from encoder#dequeueOutputBuffer: " + encoderStatus);
+						KLog.e(TAG, "drain:unexpected result from encoder#dequeueOutputBuffer: " + encoderStatus);
 				} else {
 
 //                KLog.w(TAG, "pushing : " + isPushing + ", mpusher: "
@@ -570,9 +591,9 @@ LOOP:	while (mIsCapturing) {
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 						outputBuffer = mMediaCodec.getOutputBuffer(encoderStatus);
 					} else {
-						if (encoderOutputBuffers == null) {
-							continue;
-						}
+//						if (encoderOutputBuffers == null) {
+//							continue;
+//						}
 						outputBuffer = encoderOutputBuffers[encoderStatus];
 					}
 
@@ -603,39 +624,126 @@ LOOP:	while (mIsCapturing) {
                         // write encoded data to muxer(need to adjust presentationTimeUs.
                         mBufferInfo.presentationTimeUs = getPTSUs();
 
-                        muxer.writeSampleData(mTrackIndex, outputBuffer, mBufferInfo);
+                        muxer.writeSampleData(mTrackIndex, outputBuffer.duplicate(), mBufferInfo);
                         prevOutputPTSUs = mBufferInfo.presentationTimeUs;
                     }
 
 
 
 					//2. pushing
-					if (mRtspClient != null && isPushing) {
-						KLog.w(TAG, "开始pushing ");
+                    if (!USEEASYPUSHER) {
+                        if (mRtspClient != null && isPushing) {
+                            KLog.w(TAG, "开始pushing ");
 
-                        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                            KLog.w(TAG, "开始pushing , 设置sps pps");
+                            if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                                KLog.w(TAG, "开始pushing , 设置sps pps");
 
-                            if (!spsPpsSetted) {
-                                Pair<ByteBuffer, ByteBuffer> buffers =
-                                        decodeSpsPpsFromBuffer(outputBuffer.duplicate(), mBufferInfo.size);
-                                if (buffers != null) {
-                                    mRtspClient.setSPSandPPS(buffers.first, buffers.second);
-                                    spsPpsSetted = true;
-									mRtspClient.connect();
+                                if (!spsPpsSetted) {
+                                    Pair<ByteBuffer, ByteBuffer> buffers =
+                                            decodeSpsPpsFromBuffer(outputBuffer.duplicate(), mBufferInfo.size);
+                                    if (buffers != null) {
+                                        mRtspClient.setSPSandPPS(buffers.first, buffers.second);
+                                        spsPpsSetted = true;
+                                        mRtspClient.connect();
 
-								}
+                                    }
+                                }
                             }
+
+                            KLog.w(TAG, String.format("push video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
+                            mRtspClient.sendVideo(outputBuffer.duplicate(), mBufferInfo);
                         }
+                    } else {
+                        //easypusher 推流
+                        if (mPusher != null && isPushing) {
 
-						KLog.w(TAG, String.format("push i video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
-						mRtspClient.sendVideo(outputBuffer, mBufferInfo);
+                            /*outputBuffer.position(mBufferInfo.offset);
+                            outputBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
 
-					} /*else {
+                            boolean sync = false;
+                            if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
+                                sync = (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                                if (!sync) {
+                                    byte[] temp = new byte[mBufferInfo.size];
+                                    outputBuffer.get(temp);
+                                    mPpsSps = temp;
+                                    mMediaCodec.releaseOutputBuffer(encoderStatus, false);
+                                    continue;
+                                } else {
+                                    mPpsSps = new byte[0];
+                                }
+                            }
+                            sync |= (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                            int len = mPpsSps.length + mBufferInfo.size;
+                            if (len > h264.length) {
+                                h264 = new byte[len];
+                            }
+                            if (sync) {
+                                System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
+                                outputBuffer.get(h264, mPpsSps.length, mBufferInfo.size);
+                                mPusher.push(h264, 0, mPpsSps.length + mBufferInfo.size, mBufferInfo.presentationTimeUs / 1000, 1);
+                                if (DEBUG) {
+                                    KLog.w(TAG, String.format("push i video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
+                                }
+                            } else {
+                                outputBuffer.get(h264, 0, mBufferInfo.size);
+                                mPusher.push(h264, 0, mBufferInfo.size, mBufferInfo.presentationTimeUs / 1000, 1);
+                                if (DEBUG) {
+                                    KLog.w(TAG, String.format("push video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
+                                }
+                            }*/
+
+                            ByteBuffer outputBuffer_;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                outputBuffer_ = mMediaCodec.getOutputBuffer(encoderStatus);
+                            } else {
+//                                if (encoderOutputBuffers == null) {
+//                                    continue;
+//                                }
+                                outputBuffer_ = encoderOutputBuffers[encoderStatus];
+                            }
+
+                            outputBuffer_.position(mBufferInfo.offset);
+                            outputBuffer_.limit(mBufferInfo.offset + mBufferInfo.size);
+
+                            boolean sync = false;
+                            if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
+                                sync = (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                                if (!sync) {
+                                    byte[] temp = new byte[mBufferInfo.size];
+                                    outputBuffer_.get(temp);
+                                    mPpsSps = temp;
+                                    mMediaCodec.releaseOutputBuffer(encoderStatus, false);
+                                    continue;
+                                } else {
+                                    mPpsSps = new byte[0];
+                                }
+                            }
+                            sync |= (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                            int len = mPpsSps.length + mBufferInfo.size;
+                            if (len > h264.length) {
+                                h264 = new byte[len];
+                            }
+                            if (sync) {
+                                System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
+                                outputBuffer_.get(h264, mPpsSps.length, mBufferInfo.size);
+                                mPusher.push(h264, 0, mPpsSps.length + mBufferInfo.size,
+                                        mBufferInfo.presentationTimeUs / 1000, Pusher.TransType.EASY_RTP_OVER_TCP);
+                                KLog.w(TAG, String.format("push i video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
+                            } else {
+                                outputBuffer_.get(h264, 0, mBufferInfo.size);
+                                mPusher.push(h264, 0, mBufferInfo.size,
+                                        mBufferInfo.presentationTimeUs / 1000, Pusher.TransType.EASY_RTP_OVER_TCP);
+                                KLog.w(TAG, String.format("push video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
+                            }
+
+                        } /*else {
 					if (mPusher != null) {
 						mPusher.stop();
 					}
 				}*/
+                    }
+
 
 
 					//3. return buffer to encoder

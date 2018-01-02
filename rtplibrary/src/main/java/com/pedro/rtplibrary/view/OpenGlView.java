@@ -153,7 +153,7 @@ public class OpenGlView extends SurfaceView
   }
 
   public void startGLThread() {
-    Log.i(TAG, "Thread started.");
+    Log.w(TAG, "Thread started.");
     if (textureManager == null) {
       textureManager = new GlWatermarkRenderer(getContext());
     }
@@ -265,7 +265,7 @@ public class OpenGlView extends SurfaceView
 
   @Override
   public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-    Log.i(TAG, "size: " + width + "x" + height);
+    Log.w(TAG, "size: " + width + "x" + height);
     this.previewWidth = width;
     this.previewHeight = height;
   }

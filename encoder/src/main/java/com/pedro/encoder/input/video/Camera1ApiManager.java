@@ -166,7 +166,7 @@ public class Camera1ApiManager implements Camera.PreviewCallback {
             }
             camera.startPreview();
             running = true;
-            Log.i(TAG, width + "X" + height);
+            Log.w(TAG, width + "X" + height);
           } catch (IOException e) {
             e.printStackTrace();
           }
@@ -317,7 +317,7 @@ public class Camera1ApiManager implements Camera.PreviewCallback {
     if (camera != null) {
       formats = camera.getParameters().getSupportedPreviewFormats();
       for (Integer i : formats) {
-        Log.i(TAG, "camera format supported: " + i);
+        Log.w(TAG, "camera format supported: " + i);
       }
     } else {
       camera = Camera.open(cameraSelect);
@@ -346,7 +346,7 @@ public class Camera1ApiManager implements Camera.PreviewCallback {
     while (iterator.hasNext()) {
       Camera.Size size = iterator.next();
       if (size.width > maxSize.width || size.height > maxSize.height) {
-        Log.i(TAG, size.width + "X" + size.height + ", not supported for encoder");
+        Log.w(TAG, size.width + "X" + size.height + ", not supported for encoder");
         iterator.remove();
       }
     }

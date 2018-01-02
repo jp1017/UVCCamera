@@ -8,6 +8,7 @@ import com.pedro.rtsp.rtp.sockets.RtpSocketUdp;
 import com.pedro.rtsp.rtsp.Protocol;
 import com.pedro.rtsp.rtsp.RtspClient;
 import com.pedro.rtsp.utils.RtpConstants;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -62,6 +63,8 @@ public class H264Packet extends BasePacket {
 
       // Small NAL unit => Single NAL unit
       if (naluLength <= maxPacketSize - RtpConstants.RTP_HEADER_LENGTH - 2) {
+        Log.w(TAG, "Small NAL unit");
+
         buffer = socket.requestBuffer();
         buffer[RtpConstants.RTP_HEADER_LENGTH] = header[4];
         int cont = naluLength - 1;
@@ -74,6 +77,7 @@ public class H264Packet extends BasePacket {
       }
       // Large NAL unit => Split nal unit
       else {
+        Log.w(TAG, "Large NAL unit");
         // Set FU-A header
         header[1] = (byte) (header[4] & 0x1F);  // FU header type
         header[1] += 0x80; // Start bit

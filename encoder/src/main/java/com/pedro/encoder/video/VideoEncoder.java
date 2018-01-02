@@ -15,6 +15,7 @@ import android.util.Log;
 import android.util.Pair;
 import android.view.Surface;
 import com.pedro.encoder.input.video.GetCameraData;
+import com.pedro.encoder.utils.Constants;
 import com.pedro.encoder.utils.YUVUtil;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -255,7 +256,7 @@ public class VideoEncoder implements GetCameraData {
                     try {
                       queueColor.add(buffer);
                     } catch (IllegalStateException e) {
-                      Log.i(TAG, "frame discarded");
+                      Log.w(TAG, "frame discarded");
                     }
                   }
                 } catch (InterruptedException e) {
@@ -275,7 +276,7 @@ public class VideoEncoder implements GetCameraData {
                   try {
                     queueEncode.add(buffer);
                   } catch (IllegalStateException e) {
-                    Log.i(TAG, "frame discarded");
+                    Log.w(TAG, "frame discarded");
                   }
                 } catch (InterruptedException e) {
                   if (threadColor != null) threadColor.interrupt();
@@ -345,7 +346,7 @@ public class VideoEncoder implements GetCameraData {
         try {
           queueRotate.add(buffer);
         } catch (IllegalStateException e) {
-          Log.i(TAG, "frame discarded");
+          Log.w(TAG, "frame discarded");
         }
       }
     }
@@ -358,7 +359,7 @@ public class VideoEncoder implements GetCameraData {
       public void run() {
         while (!Thread.interrupted()) {
           for (; ; ) {
-            int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, 0);
+            int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, Constants.TIMEOUT);
             if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
               MediaFormat mediaFormat = videoEncoder.getOutputFormat();
               getH264Data.onVideoFormat(mediaFormat);
@@ -398,7 +399,7 @@ public class VideoEncoder implements GetCameraData {
         while (!Thread.interrupted()) {
           ByteBuffer[] outputBuffers = videoEncoder.getOutputBuffers();
           for (; ; ) {
-            int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, 0);
+            int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, Constants.TIMEOUT);
             if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
               MediaFormat mediaFormat = videoEncoder.getOutputFormat();
               getH264Data.onVideoFormat(mediaFormat);
@@ -441,7 +442,7 @@ public class VideoEncoder implements GetCameraData {
       videoEncoder.queueInputBuffer(inBufferIndex, 0, buffer.length, pts, 0);
     }
     for (; ; ) {
-      int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, 0);
+      int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, Constants.TIMEOUT);
       if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
         MediaFormat mediaFormat = videoEncoder.getOutputFormat();
         getH264Data.onVideoFormat(mediaFormat);
@@ -483,7 +484,7 @@ public class VideoEncoder implements GetCameraData {
     }
 
     for (; ; ) {
-      int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, 0);
+      int outBufferIndex = videoEncoder.dequeueOutputBuffer(videoInfo, Constants.TIMEOUT);
       if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
         MediaFormat mediaFormat = videoEncoder.getOutputFormat();
         getH264Data.onVideoFormat(mediaFormat);
@@ -525,10 +526,10 @@ public class VideoEncoder implements GetCameraData {
       String[] types = mci.getSupportedTypes();
       for (String type : types) {
         if (type.equalsIgnoreCase(mime)) {
-          Log.i(TAG, String.format("videoEncoder %s type supported: %s", mci.getName(), type));
+          Log.w(TAG, String.format("videoEncoder %s type supported: %s", mci.getName(), type));
           MediaCodecInfo.CodecCapabilities codecCapabilities = mci.getCapabilitiesForType(mime);
           for (int color : codecCapabilities.colorFormats) {
-            Log.i(TAG, "Color supported: " + color);
+            Log.w(TAG, "Color supported: " + color);
             //check if encoder support any yuv420 color
             if (color == FormatVideoEncoder.YUV420PLANAR.getFormatCodec()
                 || color == FormatVideoEncoder.YUV420SEMIPLANAR.getFormatCodec()
@@ -555,10 +556,10 @@ public class VideoEncoder implements GetCameraData {
       String[] types = mci.getSupportedTypes();
       for (String type : types) {
         if (type.equalsIgnoreCase(mime)) {
-          Log.i(TAG, String.format("videoEncoder %s type supported: %s", mci.getName(), type));
+          Log.w(TAG, String.format("videoEncoder %s type supported: %s", mci.getName(), type));
           MediaCodecInfo.CodecCapabilities codecCapabilities = mci.getCapabilitiesForType(mime);
           for (int color : codecCapabilities.colorFormats) {
-            Log.i(TAG, "Color supported: " + color);
+            Log.w(TAG, "Color supported: " + color);
             //check if encoder support any yuv420 color
             if (color == FormatVideoEncoder.YUV420PLANAR.getFormatCodec()
                 || color == FormatVideoEncoder.YUV420SEMIPLANAR.getFormatCodec()

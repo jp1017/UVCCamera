@@ -37,7 +37,7 @@ public class MicrophoneManager {
    */
   public void createMicrophone() {
     createMicrophone(sampleRate, true, false, false);
-    Log.i(TAG, "Microphone created, " + sampleRate + "hz, Stereo");
+    Log.w(TAG, "Microphone created, " + sampleRate + "hz, Stereo");
   }
 
   /**
@@ -54,7 +54,7 @@ public class MicrophoneManager {
     if (echoCanceler) audioPostProcessEffect.enableEchoCanceler();
     if (noiseSuppressor) audioPostProcessEffect.enableNoiseSuppressor();
     String chl = (isStereo) ? "Stereo" : "Mono";
-    Log.i(TAG, "Microphone created, " + sampleRate + "hz, " + chl);
+    Log.w(TAG, "Microphone created, " + sampleRate + "hz, " + chl);
     created = true;
   }
 
@@ -86,7 +86,7 @@ public class MicrophoneManager {
     if (audioRecord != null) {
       audioRecord.startRecording();
       running = true;
-      Log.i(TAG, "Microphone started");
+      Log.w(TAG, "Microphone started");
     } else {
       Log.e(TAG, "Error starting, microphone was stopped or not created, "
           + "use createMicrophone() before start()");
@@ -137,7 +137,7 @@ public class MicrophoneManager {
       audioPostProcessEffect.releaseEchoCanceler();
       audioPostProcessEffect.releaseNoiseSuppressor();
     }
-    Log.i(TAG, "Microphone stopped");
+    Log.w(TAG, "Microphone stopped");
   }
 
   /**

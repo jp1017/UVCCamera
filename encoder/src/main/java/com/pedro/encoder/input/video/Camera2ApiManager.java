@@ -111,7 +111,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
               cameraCaptureSession.setRepeatingBurst(
                   Collections.singletonList(drawInputSurface(surfaceEncoder)), null, cameraHandler);
             }
-            Log.i(TAG, "camera configured");
+            Log.w(TAG, "camera configured");
           } catch (CameraAccessException | NullPointerException e) {
             e.printStackTrace();
           }
@@ -266,13 +266,13 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   public void onOpened(@NonNull CameraDevice cameraDevice) {
     this.cameraDevice = cameraDevice;
     startPreview(cameraDevice);
-    Log.i(TAG, "camera opened");
+    Log.w(TAG, "camera opened");
   }
 
   @Override
   public void onDisconnected(@NonNull CameraDevice cameraDevice) {
     cameraDevice.close();
-    Log.i(TAG, "camera disconnected");
+    Log.w(TAG, "camera disconnected");
   }
 
   @Override

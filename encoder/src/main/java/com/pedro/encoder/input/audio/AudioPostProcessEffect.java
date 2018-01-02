@@ -26,7 +26,7 @@ public class AudioPostProcessEffect {
     if (AutomaticGainControl.isAvailable() && automaticGainControl == null) {
       automaticGainControl = AutomaticGainControl.create(microphoneId);
       automaticGainControl.setEnabled(true);
-      Log.i(TAG, "AutoGainControl enabled");
+      Log.w(TAG, "AutoGainControl enabled");
     } else {
       Log.e(TAG, "This device don't support AutoGainControl");
     }
@@ -44,7 +44,7 @@ public class AudioPostProcessEffect {
     if (AcousticEchoCanceler.isAvailable() && acousticEchoCanceler == null) {
       acousticEchoCanceler = AcousticEchoCanceler.create(microphoneId);
       acousticEchoCanceler.setEnabled(true);
-      Log.i(TAG, "EchoCanceler enabled");
+      Log.w(TAG, "EchoCanceler enabled");
     } else {
       Log.e(TAG, "This device don't support EchoCanceler");
     }
@@ -62,7 +62,7 @@ public class AudioPostProcessEffect {
     if (NoiseSuppressor.isAvailable() && noiseSuppressor == null) {
       noiseSuppressor = NoiseSuppressor.create(microphoneId);
       noiseSuppressor.setEnabled(true);
-      Log.i(TAG, "NoiseSuppressor enabled");
+      Log.w(TAG, "NoiseSuppressor enabled");
     } else {
       Log.e(TAG, "This device don't support NoiseSuppressor");
     }

@@ -77,7 +77,7 @@ public class RtpSocketTcp extends BaseRtpSocket implements Runnable {
       outputStream.write(tcpHeader);
       outputStream.write(buffers[bufferOut], 0, len);
       outputStream.flush();
-      Log.i(TAG, "send packet, " + len + " Size");
+      Log.w(TAG, "send packet, " + len + " Size");
     }
   }
 }

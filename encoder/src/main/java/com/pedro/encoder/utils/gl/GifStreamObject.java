@@ -36,7 +36,7 @@ public class GifStreamObject extends StreamObjectBase {
   public void load(InputStream inputStreamGif) throws IOException {
     GifDecoder gifDecoder = new GifDecoder();
     if (gifDecoder.read(inputStreamGif, inputStreamGif.available()) == 0) {
-      Log.i(TAG, "read gif ok");
+      Log.w(TAG, "read gif ok");
       numFrames = gifDecoder.getFrameCount();
       gifDelayFrames = new int[numFrames];
       gifBitmaps = new Bitmap[numFrames];
@@ -45,7 +45,7 @@ public class GifStreamObject extends StreamObjectBase {
         gifBitmaps[i] = gifDecoder.getNextFrame();
         gifDelayFrames[i] = gifDecoder.getNextDelay();
       }
-      Log.i(TAG, "finish load gif frames");
+      Log.w(TAG, "finish load gif frames");
     } else {
       throw new RuntimeException("read gif error");
     }

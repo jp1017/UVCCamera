@@ -1,6 +1,8 @@
 package com.pedro.encoder.input.decoder;
 
 import com.pedro.encoder.input.audio.GetMicrophoneData;
+import com.pedro.encoder.utils.Constants;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -125,7 +127,7 @@ public class AudioDecoder {
           audioExtractor.advance();
         }
 
-        int outIndex = audioDecoder.dequeueOutputBuffer(audioInfo, 0);
+        int outIndex = audioDecoder.dequeueOutputBuffer(audioInfo, Constants.TIMEOUT);
         switch (outIndex) {
           case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
             outputBuffers = audioDecoder.getOutputBuffers();

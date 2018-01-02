@@ -1,4 +1,4 @@
-package com.ford.openxc.webcam.app;
+package com.pedro.encoder.utils;
 /*
 ******************* Copyright (c) ***********************\
 **
@@ -40,16 +40,6 @@ package com.ford.openxc.webcam.app;
 */
 
 
-import android.app.Application;
-
-import com.ford.openxc.webcam.BuildConfig;
-import com.socks.library.KLog;
-
-public class WebCamApp extends Application {
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        KLog.wnit(BuildConfig.DEBUG);
-    }
+public class Constants {
+    public static final int TIMEOUT = 11000;
 }

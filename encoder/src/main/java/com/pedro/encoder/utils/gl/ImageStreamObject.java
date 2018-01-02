@@ -31,7 +31,7 @@ public class ImageStreamObject extends StreamObjectBase {
   public void load(Bitmap imageBitmap) throws IOException {
     this.imageBitmap = imageBitmap;
     numFrames = 1;
-    Log.i(TAG, "finish load image");
+    Log.w(TAG, "finish load image");
   }
 
   @Override

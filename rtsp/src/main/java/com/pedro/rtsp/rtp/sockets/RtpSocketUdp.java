@@ -86,7 +86,7 @@ public class RtpSocketUdp extends BaseRtpSocket implements Runnable {
       while (bufferCommitted.tryAcquire(4, TimeUnit.SECONDS)) {
         senderReportUdp.update(packets[bufferOut].getLength(), timestamps[bufferOut], port);
         mSocket.send(packets[bufferOut]);
-        Log.i(TAG, "send packet, "
+        Log.w(TAG, "send packet, "
             + packets[bufferOut].getLength()
             + " Size, "
             + packets[bufferOut].getPort()

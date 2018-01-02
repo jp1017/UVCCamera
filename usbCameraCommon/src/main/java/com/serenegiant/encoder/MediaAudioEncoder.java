@@ -65,7 +65,7 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 	protected void prepare(Context activity) throws IOException {
 		Log.w(TAG, "prepare:");
 
-//		initEasyPusher(activity, Constants.PUSHER_ADDR, Constants.PUSHER_PORT);
+//		initRtspClient(activity, Constants.PUSHER_ADDR, Constants.PUSHER_PORT);
 
         mTrackIndex = -1;
         mMuxerStarted = mIsEOS = false;
@@ -186,7 +186,7 @@ public class MediaAudioEncoder extends MediaEncoder implements IAudioEncoder {
 						}*/
 						}
 					} else if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {
-//                    Log.v(TAG, "No buffer available...");
+//						Log.w(TAG, "No buffer available...");
 					} else {
 						Log.e(TAG, "Message: " + index);
 					}

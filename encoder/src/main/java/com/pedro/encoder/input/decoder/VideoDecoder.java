@@ -6,6 +6,9 @@ import android.media.MediaFormat;
 import android.os.Process;
 import android.util.Log;
 import android.view.Surface;
+
+import com.pedro.encoder.utils.Constants;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -107,19 +110,19 @@ public class VideoDecoder {
     ByteBuffer[] inputBuffers = videoDecoder.getInputBuffers();
     long startMs = System.currentTimeMillis();
     while (decoding) {
-      int inIndex = videoDecoder.dequeueInputBuffer(10000);
+      int inIndex = videoDecoder.dequeueInputBuffer(Constants.TIMEOUT);
       if (inIndex >= 0) {
         ByteBuffer buffer = inputBuffers[inIndex];
         int sampleSize = videoExtractor.readSampleData(buffer, 0);
         if (sampleSize < 0) {
           videoDecoder.queueInputBuffer(inIndex, 0, 0, 0L, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-          Log.i(TAG, "end of file in");
+          Log.w(TAG, "end of file in");
         } else {
           videoDecoder.queueInputBuffer(inIndex, 0, sampleSize, videoExtractor.getSampleTime(), 0);
           videoExtractor.advance();
         }
       }
-      int outIndex = videoDecoder.dequeueOutputBuffer(videoInfo, 10000);
+      int outIndex = videoDecoder.dequeueOutputBuffer(videoInfo, Constants.TIMEOUT);
       if (outIndex >= 0) {
         //needed for fix decode speed
         while (videoInfo.presentationTimeUs / 1000 > System.currentTimeMillis() - startMs) {
@@ -133,9 +136,9 @@ public class VideoDecoder {
         videoDecoder.releaseOutputBuffer(outIndex, videoInfo.size != 0);
       }
       if ((videoInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-        Log.i(TAG, "end of file out");
+        Log.w(TAG, "end of file out");
         if (loopMode) {
-          Log.i(TAG, "loop mode, restreaming file");
+          Log.w(TAG, "loop mode, restreaming file");
           videoExtractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
           videoDecoder.flush();
         } else {

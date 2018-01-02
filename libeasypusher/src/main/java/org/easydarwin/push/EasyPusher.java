@@ -103,7 +103,7 @@ public class EasyPusher implements Pusher{
 
     @Override
     public synchronized void initPush(Context context, final InitCallback callback) {
-        Log.i(TAG, "PusherStart");
+        Log.w(TAG, "PusherStart");
         String key = KEY;
         mPusherObj = init(key, context, new OnInitPusherCallback() {
             int code = Integer.MAX_VALUE;

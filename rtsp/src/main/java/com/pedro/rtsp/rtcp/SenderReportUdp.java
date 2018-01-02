@@ -64,7 +64,7 @@ public class SenderReportUdp extends BaseSenderReport {
         datagramPacket.setPort(port);
         try {
           socket.send(datagramPacket);
-          Log.i(TAG, "send report, " + datagramPacket.getPort() + " Port");
+          Log.w(TAG, "send report, " + datagramPacket.getPort() + " Port");
         } catch (IOException e) {
           Log.e(TAG, "send UDP report error", e);
           connectCheckerRtsp.onConnectionFailedRtsp("Error send report, " + e.getMessage());

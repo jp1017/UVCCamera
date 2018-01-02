@@ -161,93 +161,101 @@ public class RtspClient {
     this.isStereo = isStereo;
   }
 
-  public void connect() {
-    if (!streaming) {
-      h264Packet = new H264Packet(this, protocol);
-      if (sps != null && pps != null) {
-        h264Packet.setSPSandPPS(sps, pps);
-      }
-      aacPacket = new AacPacket(this, protocol);
-      aacPacket.setSampleRate(sampleRate);
-      thread = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            if (!tlsEnabled) {
-              connectionSocket = new Socket();
-              SocketAddress socketAddress = new InetSocketAddress(host, port);
-              connectionSocket.connect(socketAddress, 3000);
-            } else {
-              connectionSocket = CreateSSLSocket.createSSlSocket(host, port);
+    public void connect() {
+        if (!streaming) {
+            h264Packet = new H264Packet(this, protocol);
+            if (sps != null && pps != null) {
+                h264Packet.setSPSandPPS(sps, pps);
             }
-            reader = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            outputStream = connectionSocket.getOutputStream();
-            writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+            aacPacket = new AacPacket(this, protocol);
+            aacPacket.setSampleRate(sampleRate);
+            thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (connectionSocket == null || connectionSocket.isConnected()) {
+                            if (!tlsEnabled) {
+                                connectionSocket = new Socket();
+                                SocketAddress socketAddress = new InetSocketAddress(host, port);
+                                connectionSocket.connect(socketAddress, 3000);
+                            } else {
+                                connectionSocket = CreateSSLSocket.createSSlSocket(host, port);
+                            }
+                        }
 
-            //options获取支持d命令
-            writer.write(sendOptions());
-            writer.flush();
-            getResponse(false, false);
+                        Thread.sleep(500);
 
-            writer.write(sendAnnounce());
-            writer.flush();
-            //check if you need credential for stream, if you need try connect with credential
-            String response = getResponse(false, false);
-            int status = getResponseStatus(response);
+                        if (connectionSocket.isConnected()) {
+                            reader = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+                            outputStream = connectionSocket.getOutputStream();
+                        }
 
-            Log.w(TAG, "response status: " + status);
+                        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
 
-            if (status == 403) {
-              connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, access denied");
-              Log.e(TAG, "Response 403, access denied");
-              return;
-            } else if (status == 401) {
-              if (user == null || password == null) {
-                connectCheckerRtsp.onAuthErrorRtsp();
-                return;
-              } else {
-                writer.write(sendAnnounceWithAuth(response));
-                writer.flush();
-                int statusAuth = getResponseStatus(getResponse(false, false));
-                if (statusAuth == 401) {
-                  connectCheckerRtsp.onAuthErrorRtsp();
-                  return;
-                } else if (statusAuth == 200) {
-                  connectCheckerRtsp.onAuthSuccessRtsp();
-                } else {
-                  connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, announce with auth failed");
+                        //options获取支持d命令
+                        writer.write(sendOptions());
+                        writer.flush();
+                        getResponse(false, false);
+
+                        writer.write(sendAnnounce());
+                        writer.flush();
+                        //check if you need credential for stream, if you need try connect with credential
+                        String response = getResponse(false, false);
+                        int status = getResponseStatus(response);
+
+                        Log.w(TAG, "response status: " + status);
+
+                        if (status == 403) {
+                            connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, access denied");
+                            Log.e(TAG, "Response 403, access denied");
+                            return;
+                        } else if (status == 401) {
+                            if (user == null || password == null) {
+                                connectCheckerRtsp.onAuthErrorRtsp();
+                                return;
+                            } else {
+                                writer.write(sendAnnounceWithAuth(response));
+                                writer.flush();
+                                int statusAuth = getResponseStatus(getResponse(false, false));
+                                if (statusAuth == 401) {
+                                    connectCheckerRtsp.onAuthErrorRtsp();
+                                    return;
+                                } else if (statusAuth == 200) {
+                                    connectCheckerRtsp.onAuthSuccessRtsp();
+                                } else {
+                                    connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, announce with auth failed");
+                                }
+                            }
+                        } else if (status != 200) {
+                            connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, announce failed");
+                        }
+                        // TODO: 17-12-25 上午9:53 蒋朋去掉音频
+                        writer.write(sendSetup(trackAudio, protocol));
+                        writer.flush();
+                        getResponse(true, true);
+
+                        writer.write(sendSetup(trackVideo, protocol));
+                        writer.flush();
+                        getResponse(false, true);
+
+                        writer.write(sendRecord());
+                        writer.flush();
+                        getResponse(false, true);
+
+                        h264Packet.updateDestinationVideo();
+                        aacPacket.updateDestinationAudio();
+                        streaming = true;
+                        connectCheckerRtsp.onConnectionSuccessRtsp();
+                    } catch (IOException | NullPointerException | InterruptedException e) {
+                        Log.e(TAG, "connection error", e);
+                        connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, " + e.getMessage());
+                        streaming = false;
+                    }
                 }
-              }
-            } else if (status != 200) {
-              connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, announce failed");
-            }
-            // TODO: 17-12-25 上午9:53 蒋朋去掉音频
-            writer.write(sendSetup(trackAudio, protocol));
-            writer.flush();
-            getResponse(true, true);
-
-            writer.write(sendSetup(trackVideo, protocol));
-            writer.flush();
-            getResponse(false, true);
-
-            writer.write(sendRecord());
-            writer.flush();
-            getResponse(false, true);
-
-            h264Packet.updateDestinationVideo();
-            aacPacket.updateDestinationAudio();
-            streaming = true;
-            connectCheckerRtsp.onConnectionSuccessRtsp();
-          } catch (IOException | NullPointerException e) {
-            Log.e(TAG, "connection error", e);
-            connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, " + e.getMessage());
-            streaming = false;
-          }
+            });
+            thread.start();
         }
-      });
-      thread.start();
     }
-  }
 
   public void disconnect() {
     if (streaming) {
@@ -317,7 +325,7 @@ public class RtspClient {
               + "Content-Type: application/sdp\r\n\r\n"
               + body;
     }
-    Log.i(TAG, announce);
+    Log.w(TAG, announce);
     return announce;
   }
 
@@ -380,14 +388,14 @@ public class RtspClient {
             + params
             + "\r\n"
             + addHeaders(authorization);
-    Log.i(TAG, setup);
+    Log.w(TAG, setup);
     return setup;
   }
 
   private String sendOptions() {
     String options =
             "OPTIONS rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders(authorization);
-    Log.i(TAG, options);
+    Log.w(TAG, options);
     return options;
   }
 
@@ -400,14 +408,14 @@ public class RtspClient {
             + " RTSP/1.0\r\n"
             + "Range: npt=0.000-\r\n"
             + addHeaders(authorization);
-    Log.i(TAG, record);
+    Log.w(TAG, record);
     return record;
   }
 
   private String sendTearDown() {
     String teardown =
             "TEARDOWN rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders(authorization);
-    Log.i(TAG, teardown);
+    Log.w(TAG, teardown);
     return teardown;
   }
 
@@ -500,7 +508,7 @@ public class RtspClient {
             + "\r\n"
             + "Content-Type: application/sdp\r\n\r\n"
             + body;
-    Log.i(TAG, announce);
+    Log.w(TAG, announce);
     return announce;
   }
 

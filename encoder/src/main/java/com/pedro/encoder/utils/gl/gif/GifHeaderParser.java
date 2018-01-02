@@ -338,8 +338,8 @@ public class GifHeaderParser {
         tab[i++] = 0xff000000 | (r << 16) | (g << 8) | b;
       }
     } catch (BufferUnderflowException e) {
-      if (Log.isLoggable(TAG, Log.DEBUG)) {
-        Log.d(TAG, "Format Error Reading Color Table", e);
+      if (Log.isLoggable(TAG, Log.WARN)) {
+        Log.w(TAG, "Format Error Reading Color Table", e);
       }
       header.status = GifDecoder.STATUS_FORMAT_ERROR;
     }
@@ -389,8 +389,8 @@ public class GifHeaderParser {
           n += count;
         }
       } catch (Exception e) {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-          Log.d(TAG,
+        if (Log.isLoggable(TAG, Log.WARN)) {
+          Log.w(TAG,
               "Error Reading Block n: " + n + " count: " + count + " blockSize: " + blockSize, e);
         }
         header.status = GifDecoder.STATUS_FORMAT_ERROR;

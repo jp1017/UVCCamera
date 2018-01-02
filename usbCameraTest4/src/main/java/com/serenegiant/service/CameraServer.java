@@ -518,7 +518,7 @@ public final class CameraServer extends Handler {
 		private void handleStartPush() {
 			KLog.w(TAG_THREAD, "handleStartPush:mMuxer=" + mMuxer);
 
-//			initEasyPusher(false);
+//			initRtspClient(false);
 			if (mMuxer != null) {
 				synchronized (mSync) {
 					MediaEncoder.isStartPush = true;
