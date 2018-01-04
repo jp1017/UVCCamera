@@ -31,7 +31,7 @@
     android:paddingLeft="@dimen/horizontal_margin"
     android:paddingRight="@dimen/horizontal_margin"
     android:paddingTop="@dimen/vertical_margin"
-    tools:context="com.serenegiant.serviceviewtest.MainActivity" >
+    tools:context=".MainActivity" >
 
 
 	<com.serenegiant.widget.UVCCameraTextureView
@@ -51,7 +51,19 @@
         android:layout_alignRight="@+id/camera_view"
         android:src="@drawable/border" />
 
+    <TextView
+        android:id="@+id/tv_pusher_addr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/ll_main"
+        android:layout_marginBottom="8dp"
+        android:gravity="center"
+        android:textColor="@color/RED"
+        tools:text="推流地址: "
+        />
+
     <LinearLayout
+        android:id="@+id/ll_main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignBottom="@id/camera_view"
@@ -85,6 +97,17 @@
         android:layout_height="100dp"
         android:layout_alignRight="@+id/camera_view"
         android:layout_alignTop="@+id/camera_view" />
+
+    <TextView
+        android:id="@+id/tv_pusher_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:layout_below="@+id/camera_view_sub"
+        android:layout_alignRight="@+id/camera_view"
+        android:textColor="@color/RED"
+        tools:text="推流状态"
+        />
 
     <ImageButton
         android:id="@+id/record_button"

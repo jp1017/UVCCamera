@@ -74,6 +74,11 @@ setPreviewTexture method in UVCCamera.java etc.), but we have not confirm whethe
 project run on Android 3.1 yet.
 Some sample projects need API>=18 though.
 
+### 2018/01/03
+1. easypusher版本回退到release版本
+1. 添加eventbus处理推流状态显示
+1. 添加easypusher水印库
+
 ### 2017/12/26
 1. 升级easypusher
 1. isu推流成功,区分4.4和5.0系统编码

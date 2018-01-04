@@ -29,7 +29,6 @@ import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.SurfaceView;
 import android.view.View;
@@ -38,10 +37,13 @@ import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.serenegiant.common.BaseFragment;
 import com.serenegiant.encoder.MediaMuxerWrapper;
+import com.serenegiant.event.PusherStatus;
+import com.serenegiant.event.PusherUrl;
 import com.serenegiant.service.UVCService;
 import com.serenegiant.serviceclient.CameraClient;
 import com.serenegiant.serviceclient.ICameraClientCallback;
@@ -52,6 +54,11 @@ import com.serenegiant.usb.USBMonitor.OnDeviceConnectListener;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.widget.CameraViewInterface;
 import com.socks.library.KLog;
+
+import org.easydarwin.push.EasyPusher;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.List;
 
@@ -70,7 +77,11 @@ public class CameraFragment extends BaseFragment {
 	private ImageButton mRecordButton;
 	private ImageButton mStillCaptureButton;
 	private CameraViewInterface mCameraView;
-	private SurfaceView mCameraViewSub;
+
+    private TextView mTvPusherStatus;
+    private TextView mTvPusherAddr;
+
+    private SurfaceView mCameraViewSub;
 	private boolean isSubView;
 
 	public CameraFragment() {
@@ -94,6 +105,8 @@ public class CameraFragment extends BaseFragment {
 			final List<DeviceFilter> filters = DeviceFilter.getDeviceFilters(getActivity(), R.xml.device_filter);
 			mUSBMonitor.setDeviceFilter(filters);
 		}
+
+		EventBus.getDefault().register(this);
 	}
 
 	@Override
@@ -104,20 +117,29 @@ public class CameraFragment extends BaseFragment {
 		view.setOnClickListener(mOnClickListener);
 		view =rootView.findViewById(R.id.stop_button);
 		view.setOnClickListener(mOnClickListener);
+
 		mPreviewButton = (ToggleButton)rootView.findViewById(R.id.preview_button);
 		setPreviewButton(false);
 		mPreviewButton.setEnabled(false);
+
 		mRecordButton = (ImageButton)rootView.findViewById(R.id.record_button);
 		mRecordButton.setOnClickListener(mOnClickListener);
 		mRecordButton.setEnabled(false);
+
 		mStillCaptureButton = (ImageButton)rootView.findViewById(R.id.still_button);
 		mStillCaptureButton.setOnClickListener(mOnClickListener);
 		mStillCaptureButton.setEnabled(false);
+
 		mCameraView = (CameraViewInterface)rootView.findViewById(R.id.camera_view);
 		mCameraView.setAspectRatio(DEFAULT_WIDTH / (float)DEFAULT_HEIGHT);
+
 		mCameraViewSub = (SurfaceView)rootView.findViewById(R.id.camera_view_sub);
 		mCameraViewSub.setOnClickListener(mOnClickListener);
-		return rootView;
+
+        mTvPusherStatus = (TextView) rootView.findViewById(R.id.tv_pusher_status);
+        mTvPusherAddr = (TextView) rootView.findViewById(R.id.tv_pusher_addr);
+
+        return rootView;
 	}
 
 	@Override
@@ -153,6 +175,9 @@ public class CameraFragment extends BaseFragment {
 			mCameraClient.release();
 			mCameraClient = null;
 		}
+
+		EventBus.getDefault().unregister(this);
+
 		super.onDestroy();
 	}
 
@@ -160,6 +185,72 @@ public class CameraFragment extends BaseFragment {
 	public void onDetach() {
 		if (DEBUG) KLog.w(TAG, "onDetach:");
 		super.onDetach();
+	}
+
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    public void postPusherUrl(PusherUrl url) {
+        KLog.w(TAG, "推流地址: " + url.getUrl() + ", thread: "
+                + Thread.currentThread().getName());
+        mTvPusherAddr.setText(url.getUrl());
+    }
+
+	@Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+	public void postPusherStatus(PusherStatus status) {
+        KLog.w(TAG, "推流状态: " + status.getStatusNo() + ", thread: "
+                + Thread.currentThread().getName());
+
+        switch (status.getStatusNo()) {
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
+				KLog.w(TAG, "pushing invalid Key");
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
+				KLog.w(TAG, "pushing 激活成功");
+                mTvPusherStatus.setText("激活成功");
+                break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
+				KLog.w(TAG, "pushing connecting");
+                mTvPusherStatus.setText("连接中");
+                break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
+				KLog.w(TAG, "pushing connect success");
+                mTvPusherStatus.setText("连接成功");
+
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
+				KLog.w(TAG, "pushing connect failed");
+//				isPushing = false;
+                mTvPusherStatus.setText("连接失败");
+
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
+				KLog.w(TAG, "pushing 连接异常中断");
+//				isPushing = false;
+                mTvPusherStatus.setText("连接异常中断");
+
+                break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
+				KLog.w(TAG, "pushing 推流中");
+				mTvPusherStatus.setText("推流中");
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
+				KLog.w(TAG, "pushing 断开连接");
+//				isPushing = false;
+                mTvPusherStatus.setText("断开连接");
+
+                break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
+				KLog.w(TAG, "pushing 平台不匹配");
+//				isPushing = false;
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
+				KLog.w(TAG, "pushing 断授权使用商不匹配");
+//				isPushing = false;
+				break;
+			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
+				KLog.w(TAG, "pushing 进程名称长度不匹配");
+//				isPushing = false;
+				break;
+		}
 	}
 
 	public USBMonitor getUSBMonitor() {

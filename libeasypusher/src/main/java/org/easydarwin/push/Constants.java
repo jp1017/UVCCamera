@@ -116,11 +116,11 @@ public final class Constants {
 	public static final int NOTIFICATION_ID_SMS = 4;
 
 	//推流地址,端口
-//	public static final String PUSHER_ADDR = "video.qdsxkj.com";
+	public static final String PUSHER_ADDR = "video.qdsxkj.com";
 //	public static final String PUSHER_ADDR = "192.168.1.7";
 //	public static final String PUSHER_ADDR = "121.40.50.44";	//easypusher服务器
 //	public static final String PUSHER_ADDR = "cloud.easydarwin.org";	//easypusher服务器
-	public static final String PUSHER_ADDR = "139.224.226.23";
+//	public static final String PUSHER_ADDR = "139.224.226.23";
 	public static final int PUSHER_PORT = 10554;//或者554
 	public static final String PUSHER_BACK_ID = "107700000016_11";
 	public static final String PUSHER_DVR_ID = "107700000016_2";

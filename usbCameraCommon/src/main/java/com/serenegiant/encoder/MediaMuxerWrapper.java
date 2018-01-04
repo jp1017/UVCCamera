@@ -23,13 +23,6 @@
 
 package com.serenegiant.encoder;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.GregorianCalendar;
-import java.util.Locale;
-
 import android.content.Context;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
@@ -37,6 +30,13 @@ import android.media.MediaMuxer;
 import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.GregorianCalendar;
+import java.util.Locale;
 
 public class MediaMuxerWrapper {
 	private static final boolean DEBUG = true;	// TODO set false on release
@@ -155,8 +155,13 @@ public class MediaMuxerWrapper {
 		if ((mEncoderCount > 0) && (mStatredCount <= 0)) {
 			try {
 				mMediaMuxer.stop();
+				mMediaMuxer.release();
 			} catch (final Exception e) {
 				Log.w(TAG, e);
+			} finally {
+				if (mMediaMuxer != null) {
+					mMediaMuxer.release();
+				}
 			}
 			mIsStarted = false;
 			if (DEBUG) Log.w(TAG,  "MediaMuxer stopped:");

@@ -32,12 +32,16 @@ import android.util.Pair;
 import com.pedro.rtsp.rtsp.RtspClient;
 import com.pedro.rtsp.utils.ConnectCheckerRtsp;
 import com.serenegiant.app.UvcApp;
+import com.serenegiant.event.PusherStatus;
+import com.serenegiant.event.PusherUrl;
 import com.socks.library.KLog;
 
 import org.easydarwin.push.Constants;
 import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
 import org.easydarwin.push.Pusher;
+import org.easydarwin.sw.TxtOverlay;
+import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -47,7 +51,7 @@ public abstract class MediaEncoder implements Runnable, InitCallback, ConnectChe
 	private static final boolean DEBUG = true;	// TODO set false on release
 	private static final String TAG = "MediaEncoder";
 
-	protected static final int TIMEOUT_USEC = 10000;	// 10[msec]
+	protected static final int TIMEOUT_USEC = 11000;	// 10[msec]
 	protected static final int MSG_FRAME_AVAILABLE = 1;
 	protected static final int MSG_STOP_RECORDING = 9;
 
@@ -103,6 +107,7 @@ public abstract class MediaEncoder implements Runnable, InitCallback, ConnectChe
 	private EasyPusher mPusher;
 	private RtspClient mRtspClient;
 
+
     public MediaEncoder(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
     	if (listener == null) throw new NullPointerException("MediaEncoderListener is null");
     	if (muxer == null) throw new NullPointerException("MediaMuxerWrapper is null");
@@ -110,7 +115,7 @@ public abstract class MediaEncoder implements Runnable, InitCallback, ConnectChe
 		muxer.addEncoder(this);
 		mListener = listener;
 
-		synchronized (mSync) {
+        synchronized (mSync) {
             // create BufferInfo here for effectiveness(to reduce GC)
             mBufferInfo = new MediaCodec.BufferInfo();
             // wait for starting thread
@@ -122,9 +127,19 @@ public abstract class MediaEncoder implements Runnable, InitCallback, ConnectChe
         }
 	}
 
+    /**
+     * easypusher推流状态
+     * @param code
+     */
     @Override
     public void onCallback(int code) {
         KLog.w(TAG, "pushing onCallback: " + code);
+        PusherStatus status = new PusherStatus();
+        status.setStatusNo(code);
+
+        /** test4$CameraFragment#postPusherStatus*/
+        EventBus.getDefault().post(status);
+
         switch (code) {
             case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
                 KLog.w(TAG, "pushing invalid Key");
@@ -213,32 +228,46 @@ public abstract class MediaEncoder implements Runnable, InitCallback, ConnectChe
      * 初始化rtsp
      */
     protected void initRtspClient(Context context, String videoIp, int tcpPort) {
+
         if (USEEASYPUSHER) {
             if (mPusher == null) {
+                String id = BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID;
+                final String url = String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id);
+
+                PusherUrl pusherUrl = new PusherUrl();
+                pusherUrl.setUrl(url);
+                /** test4$CameraFragment#postPusherUrl*/
+                EventBus.getDefault().post(pusherUrl);
+
                 mPusher = new EasyPusher();
 
-                String id = BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID;
-                KLog.w(TAG, "pushing : url: " + String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id));
+                KLog.w(TAG, "pushing : url: " + url);
+
+                mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id), Constants.KEY_EASYPUSHER,
+                        context.getApplicationContext(), this);
 
                 //新版本
-                mPusher.initPush(context.getApplicationContext(), this);
-                mPusher.setMediaInfo(Pusher.Codec.EASY_SDK_VIDEO_CODEC_H264, 25, Pusher.Codec.EASY_SDK_AUDIO_CODEC_AAC, 1, 8000, 16);
-                mPusher.start(videoIp, tcpPort + "", String.format("%s.sdp", id), Pusher.TransType.EASY_RTP_OVER_TCP);
+//                mPusher.initPush(context.getApplicationContext(), this);
+//                mPusher.setMediaInfo(Pusher.Codec.EASY_SDK_VIDEO_CODEC_H264, 25, Pusher.Codec.EASY_SDK_AUDIO_CODEC_AAC, 1, 8000, 16);
+//                mPusher.start(videoIp, tcpPort + "", String.format("%s.sdp", id), Pusher.TransType.EASY_RTP_OVER_TCP);
 
-            } else {
-                return;
             }
         } else {
-            if (mRtspClient != null) {
-                return;
+            if (mRtspClient == null) {
+
+                String id = BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID;
+                final String url = String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id);
+
+                PusherUrl pusherUrl = new PusherUrl();
+                pusherUrl.setUrl(url);
+                /** test4$CameraFragment#postPusherUrl*/
+                EventBus.getDefault().post(pusherUrl);
+
+                mRtspClient = new RtspClient(this);
+
+                mRtspClient.setUrl(url);
+                mRtspClient.connect();
             }
-            mRtspClient = new RtspClient(this);
-
-            mRtspClient.setUrl("rtsp://" + Constants.PUSHER_ADDR + ":" + Constants.PUSHER_PORT
-                    + "/" + (BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID)
-                    + ".sdp");
-
-            mRtspClient.connect();
         }
 
     }
@@ -489,6 +518,7 @@ public abstract class MediaEncoder implements Runnable, InitCallback, ConnectChe
     }
 
     private boolean spsPpsSetted = false;
+    private long mPresentTimeUs = System.nanoTime();
 
     /**
      * drain encoded data and write them to muxer
@@ -728,12 +758,12 @@ LOOP:	while (mIsCapturing) {
                                 System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
                                 outputBuffer_.get(h264, mPpsSps.length, mBufferInfo.size);
                                 mPusher.push(h264, 0, mPpsSps.length + mBufferInfo.size,
-                                        mBufferInfo.presentationTimeUs / 1000, Pusher.TransType.EASY_RTP_OVER_TCP);
+                                        mBufferInfo.presentationTimeUs / 1000, 1);
                                 KLog.w(TAG, String.format("push i video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
                             } else {
                                 outputBuffer_.get(h264, 0, mBufferInfo.size);
                                 mPusher.push(h264, 0, mBufferInfo.size,
-                                        mBufferInfo.presentationTimeUs / 1000, Pusher.TransType.EASY_RTP_OVER_TCP);
+                                        mBufferInfo.presentationTimeUs / 1000, 1);
                                 KLog.w(TAG, String.format("push video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
                             }
 

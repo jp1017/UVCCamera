@@ -27,6 +27,7 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.media.MediaScannerConnection;
 import android.media.SoundPool;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -51,6 +52,7 @@ import com.socks.library.KLog;
 import org.easydarwin.push.Constants;
 import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
+import org.easydarwin.sw.TxtOverlay;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -63,6 +65,8 @@ public final class CameraServer extends Handler {
 
 	private int mFrameWidth = Constants.PIC_WIDTH_DEFAULT / 2;
 	private int mFrameHeight = Constants.PIC_HEIGHT_DEFAULT / 2;
+
+    private static final float mBandwidth = UVCCamera.DEFAULT_BANDWIDTH / 2;
 
 	private static class CallbackCookie {
 		boolean isConnected;
@@ -346,10 +350,6 @@ public final class CameraServer extends Handler {
 		private int mEncoderSurfaceId;
 		private int mFrameWidth, mFrameHeight;
 
-		/*private EasyPusher mEasyPusher;
-		private volatile boolean isPushing;	//是否推流
-		private byte[] mPpsSps;*/
-
 		/**
 		 * shutter sound
 		 */
@@ -367,13 +367,23 @@ public final class CameraServer extends Handler {
 		private MediaMuxerWrapper mMuxer;
 		private MediaSurfaceEncoder mVideoEncoder;
 
-		private CameraThread(final Context context, final UsbControlBlock ctrlBlock) {
+        private final TxtOverlay mTxtOverlay;
+
+        private CameraThread(final Context context, final UsbControlBlock ctrlBlock) {
 			super("CameraThread");
 			if (DEBUG) KLog.w(TAG_THREAD, "Constructor:");
 			mWeakContext = new WeakReference<Context>(context);
 			mCtrlBlock = ctrlBlock;
 			loadShutterSound(context);
-		}
+
+            mTxtOverlay = new TxtOverlay(context);
+            String filename = Environment.getExternalStorageDirectory() + "/SIMYOU.ttf";
+
+//            mTxtOverlay.init(320, 240, context.getApplicationContext()
+//                    .getFileStreamPath("SIMYOU.ttf").getPath());
+
+			mTxtOverlay.init(320, 240, filename);
+        }
 
 		@Override
 		protected void finalize() throws Throwable {
@@ -435,11 +445,11 @@ public final class CameraServer extends Handler {
 			synchronized (mSync) {
 				if (mUVCCamera == null) return;
 				try {
-					mUVCCamera.setPreviewSize(width, height, UVCCamera.FRAME_FORMAT_MJPEG);
+					mUVCCamera.setPreviewSize(width, height, UVCCamera.FRAME_FORMAT_MJPEG, mBandwidth);
 				} catch (final IllegalArgumentException e) {
 					try {
 						// fallback to YUV mode
-						mUVCCamera.setPreviewSize(width, height, UVCCamera.DEFAULT_PREVIEW_MODE);
+						mUVCCamera.setPreviewSize(width, height, UVCCamera.DEFAULT_PREVIEW_MODE, mBandwidth);
 					} catch (final IllegalArgumentException e1) {
 						mUVCCamera.destroy();
 						mUVCCamera = null;
@@ -447,7 +457,8 @@ public final class CameraServer extends Handler {
 				}
 				if (mUVCCamera == null) return;
 
-//				mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV);
+				mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV);
+
 				mFrameWidth = width;
 				mFrameHeight = height;
 				mUVCCamera.setPreviewDisplay(surface);
@@ -582,9 +593,14 @@ public final class CameraServer extends Handler {
 		private final IFrameCallback mIFrameCallback = new IFrameCallback() {
 			@Override
 			public void onFrame(final ByteBuffer frame) {
-				/*final byte[] buf = new byte[frame.remaining()];
-				frame.get(buf);
-				KLog.w(TAG, "onFrame: " + Arrays.toString(buf));*/
+                if (isRecording()) {
+                    final byte[] buf = new byte[frame.remaining()];
+                    frame.get(buf);
+//				KLog.w(TAG, "onFrame: " + Arrays.toString(buf));
+
+                    mTxtOverlay.overlay(buf, System.currentTimeMillis() + "");
+                }
+
 			}
 		};
 

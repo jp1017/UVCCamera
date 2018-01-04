@@ -41,7 +41,8 @@ public class MediaSurfaceEncoder extends MediaEncoder implements IVideoEncoder {
 	// parameters for recording
 	private final int mWidth, mHeight;
     private static final int FRAME_RATE = 30;
-    private static final float BPP = 0.50f;
+
+    private static final int BPP = 1;	//控制码率, 越大,数据大,推流慢
 
     private Surface mSurface;
 
@@ -111,7 +112,7 @@ public class MediaSurfaceEncoder extends MediaEncoder implements IVideoEncoder {
 	 * @return
 	 */
 	private int calcBitRate() {
-		int bitrate = 1 * mWidth * mHeight;
+		int bitrate = BPP * mWidth * mHeight;
 
 //		bitrate = 256000;
 
