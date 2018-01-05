@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/DARKRED"
+    tools:context="com.shenyaocn.android.dualcamera.MainActivity">
+
+    <LinearLayout
+        android:id="@+id/layout_camera"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="visible">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/WHITE"
+            android:textSize="22dp"
+            android:text="双摄像头测试"
+            android:layout_gravity="center"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/SEAGREEN"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/camera_boder">
+
+                <com.serenegiant.widget.UVCCameraTextureView
+                    android:id="@+id/camera_view_L"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center" />
+
+                <!--<LinearLayout-->
+                    <!--android:id="@+id/textViewUVCPromptL"-->
+                    <!--android:layout_width="match_parent"-->
+                    <!--android:layout_height="match_parent"-->
+                    <!--android:background="#000"-->
+                    <!--android:gravity="center"-->
+                    <!--android:orientation="vertical">-->
+
+                    <!--<ImageView-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:alpha="0.3"-->
+                        <!--android:src="@drawable/ic_launcher" />-->
+
+                    <!--<TextView-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:alpha="0.6"-->
+                        <!--android:gravity="center"-->
+                        <!--android:text="请插入USB摄像头"-->
+                        <!--android:textAppearance="?android:attr/textAppearanceMedium"-->
+                        <!--android:textColor="#ffffff" />-->
+                <!--</LinearLayout>-->
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/camera_boder">
+
+                <com.serenegiant.widget.UVCCameraTextureView
+                    android:id="@+id/camera_view_R"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center" />
+
+                <!--<LinearLayout-->
+                    <!--android:id="@+id/textViewUVCPromptR"-->
+                    <!--android:layout_width="match_parent"-->
+                    <!--android:layout_height="match_parent"-->
+                    <!--android:background="#000"-->
+                    <!--android:gravity="center"-->
+                    <!--android:orientation="vertical">-->
+
+                    <!--<ImageView-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:alpha="0.3"-->
+                        <!--android:src="@drawable/ic_launcher" />-->
+
+                    <!--<TextView-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:alpha="0.6"-->
+                        <!--android:gravity="center"-->
+                        <!--android:text="请插入USB摄像头"-->
+                        <!--android:textAppearance="?android:attr/textAppearanceMedium"-->
+                        <!--android:textColor="#ffffff" />-->
+                <!--</LinearLayout>-->
+            </FrameLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <!--<Button
+                android:id="@+id/btn_takelook"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:text="查看"
+                android:textColor="@color/WHITE"
+                android:textSize="24sp" />-->
+
+            <ImageButton
+                android:id="@+id/record_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:background="@null"
+                android:scaleType="centerCrop"
+                android:layout_marginLeft="20dp"
+                android:src="@drawable/ic_action_record" />
+
+            <TextView
+                android:id="@+id/tvRecordTime"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:textColor="@color/GREENYELLOW"
+                android:layout_marginRight="30dp"
+                android:textSize="22dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/WHITE"
+                android:layout_marginRight="5dp"
+                android:textSize="22dp"
+                android:text="自动测试"/>
+
+            <ToggleButton
+                android:id="@+id/toggle_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:button="@drawable/checkbox_iphone"
+                android:checked="false"
+                android:text=""
+                android:layout_marginRight="20dp"
+                android:textOff=""
+                android:textOn="" />
+
+
+            <ImageButton
+                android:id="@+id/capture_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:layout_marginLeft="50dp"
+                android:src="@drawable/ic_action_snapshot" />
+
+
+                <Button
+                    android:id="@+id/btn_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="24sp"
+                    android:background="@null"
+                    android:layout_marginLeft="50dp"
+                    android:textColor="@color/WHITE"
+                    android:text="退出" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

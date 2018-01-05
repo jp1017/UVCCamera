@@ -74,6 +74,10 @@ setPreviewTexture method in UVCCamera.java etc.), but we have not confirm whethe
 project run on Android 3.1 yet.
 Some sample projects need API>=18 though.
 
+### 2018/01/05
+1. 添加shenyao双摄像头库
+1. shenyao库添加水印成功,推流失败
+
 ### 2018/01/03
 1. easypusher版本回退到release版本
 1. 添加eventbus处理推流状态显示

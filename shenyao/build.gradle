@@ -1,0 +1,71 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion versionCompiler
+    buildToolsVersion versionBuildTool
+
+    defaultConfig {
+        applicationId "org.shenyaocn.android.dualcamera"
+        minSdkVersion 18
+        targetSdkVersion 25
+        versionCode 2
+        versionName "1.1"
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDir 'src/main/libs'
+            jni.srcDirs = []
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles 'proguard.cfg'
+        }
+    }
+    compileOptions {
+    }
+
+    productFlavors {
+        armeabi_v7a {
+            manifestPlaceholders = [channel: "armeabi-v7a"]
+            ndk {
+                abiFilter "armeabi-v7a"
+            }
+        }
+    }
+}
+
+repositories {
+    flatDir { dirs 'libs' }
+}
+dependencies {
+    /*compile('com.serenegiant:common:1.1.9') {
+        exclude module: 'support-v4'
+    }*/
+//    compile(name: 'libuvccamera', ext: 'aar')
+    compile project(':libuvccamera')
+//    compile project(':usbCameraCommon')
+
+//    compile 'com.android.support:appcompat-v7:25.3.1'
+//    compile 'com.android.support:support-v4:25.3.1'
+    compile('com.android.support:design:25.3.1') {
+        exclude module: 'support-v4'
+    }
+
+//    compile 'com.android.support:design:25.3.1'
+    compile 'com.googlecode.mp4parser:isoparser:1.1.17'
+
+
+    compile 'com.github.zhaokaiqiang.klog:library:1.6.0'
+
+//    compile 'org.greenrobot:eventbus:3.1.1'
+
+    //推流
+//    compile(name: 'libeasypusher', ext: 'aar')
+    compile project(':libeasypusher')
+
+
+    compile project(':rtplibrary')
+}
