@@ -24,29 +24,29 @@
 package com.serenegiant.service;
 
 import android.content.Context;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.media.AudioManager;
+import android.media.AudioRecord;
 import android.media.MediaScannerConnection;
 import android.media.SoundPool;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteCallbackList;
-import android.os.RemoteException;
-import android.text.TextUtils;
 import android.view.Surface;
 
 import com.serenegiant.encoder.MediaEncoder;
-import com.serenegiant.encoder.MediaMuxerWrapper;
-import com.serenegiant.encoder.MediaSurfaceEncoder;
-import com.serenegiant.glutils.RenderHolderCallback;
 import com.serenegiant.glutils.RendererHolder;
 import com.serenegiant.usb.IFrameCallback;
 import com.serenegiant.usb.Size;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.usb.UVCCamera;
 import com.serenegiant.usbcameratest4.R;
+import com.shenyaocn.android.Encoder.AVWriter;
+import com.shenyaocn.android.Encoder.Helper;
 import com.socks.library.KLog;
 
 import org.easydarwin.push.Constants;
@@ -54,10 +54,14 @@ import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
 import org.easydarwin.sw.TxtOverlay;
 
-import java.io.IOException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public final class CameraServer extends Handler {
 	private static final boolean DEBUG = true;
@@ -79,6 +83,8 @@ public final class CameraServer extends Handler {
 	private RendererHolder mRendererHolder;
 	private final WeakReference<CameraThread> mWeakThread;
 
+	private boolean isRenderHolder;
+
 	public static CameraServer createServer(final Context context, final UsbControlBlock ctrlBlock, final int vid, final int pid) {
 		if (DEBUG) KLog.w(TAG, "createServer:");
 		final CameraThread thread = new CameraThread(context, ctrlBlock);
@@ -90,7 +96,7 @@ public final class CameraServer extends Handler {
 		if (DEBUG) KLog.w(TAG, "Constructor:");
 		mWeakThread = new WeakReference<CameraThread>(thread);
 		mRegisteredCallbackCount = 0;
-		mRendererHolder = new RendererHolder(mFrameWidth, mFrameHeight, mRenderHolderCallback);
+		mRendererHolder = new RendererHolder(mFrameWidth, mFrameHeight, null);
 	}
 
 	@Override
@@ -189,17 +195,38 @@ public final class CameraServer extends Handler {
 		return (thread != null) && thread.isRecording();
 	}
 
-	public void addSurface(final int id, final Surface surface, final boolean isRecordable, final IUVCServiceOnFrameAvailable onFrameAvailableListener) {
-		if (DEBUG) KLog.w(TAG, "addSurface:id=" + id +",surface=" + surface);
-		if (mRendererHolder != null)
-			mRendererHolder.addSurface(id, surface, isRecordable);
-	}
+	public void addSurface(final int id, final Surface surface, final boolean isRecordable) {
+		if (DEBUG) KLog.w(TAG, "addSurface:id=" + id + ",surface=" + surface
+				+ ", isRecordable: " + isRecordable);
 
-	public void removeSurface(final int id) {
+        isRenderHolder = isRecordable;
+
+		if (isRecordable) {
+			if (mRendererHolder != null) {
+				mRendererHolder.addSurface(id, surface, isRecordable);
+			}
+		} else {
+			final CameraThread thread = mWeakThread.get();
+			if (thread != null) {
+				thread.addSurface(surface);
+			}
+		}
+
+    }
+
+	public void removeSurface(final int id, final Surface surface) {
 		if (DEBUG) KLog.w(TAG, "removeSurface:id=" + id);
-		if (mRendererHolder != null)
-			mRendererHolder.removeSurface(id);
-	}
+        if (isRenderHolder) {
+            if (mRendererHolder != null) {
+                mRendererHolder.removeSurface(id);
+            }
+        } else {
+            final CameraThread thread = mWeakThread.get();
+            if (thread != null) {
+                thread.removeSurface(surface);
+            }
+        }
+    }
 
 	public void startRecording() {
 		if (!isRecording())
@@ -211,12 +238,21 @@ public final class CameraServer extends Handler {
 			sendEmptyMessage(MSG_CAPTURE_STOP);
 	}
 
-	public void captureStill(final String path) {
-		if (mRendererHolder != null) {
-			mRendererHolder.captureStill(path);
-			sendMessage(obtainMessage(MSG_CAPTURE_STILL, path));
-		}
-	}
+    public void captureStill(final String path) {
+        KLog.w(TAG, "captureStill:path=" + path);
+
+        if (isRenderHolder) {
+            if (mRendererHolder != null) {
+                KLog.w(TAG, "captureStill, use renderholder");
+
+//                mRendererHolder.captureStill(path);
+                sendMessage(obtainMessage(MSG_CAPTURE_STILL, path));
+            }
+        } else {
+            sendMessage(obtainMessage(MSG_CAPTURE_STILL, path));
+        }
+
+    }
 
 	public void startPush() {
 		sendEmptyMessage(MSG_PUSH_START);
@@ -319,35 +355,10 @@ public final class CameraServer extends Handler {
 		}
 	}
 
-	private final RenderHolderCallback mRenderHolderCallback
-			= new RenderHolderCallback() {
-		@Override
-		public void onCreate(final Surface surface) {
-		}
-
-		@Override
-		public void onFrameAvailable() {
-			final CameraThread thread = mWeakThread.get();
-			if ((thread != null) && (thread.mVideoEncoder != null)) {
-				try {
-					thread.mVideoEncoder.frameAvailableSoon();
-				} catch (final Exception e) {
-					//
-				}
-			}
-		}
-
-		@Override
-		public void onDestroy() {
-		}
-	};
-
 	private static final class CameraThread extends Thread implements InitCallback {
 		private static final String TAG_THREAD = "CameraThread";
 		private final Object mSync = new Object();
-		private boolean mIsRecording;
 		private final WeakReference<Context> mWeakContext;
-		private int mEncoderSurfaceId;
 		private int mFrameWidth, mFrameHeight;
 
 		/**
@@ -361,15 +372,20 @@ public final class CameraServer extends Handler {
 		 * for accessing UVC camera
 		 */
 		private volatile UVCCamera mUVCCamera;
-		/**
-		 * muxer for audio/video recording
-		 */
-		private MediaMuxerWrapper mMuxer;
-		private MediaSurfaceEncoder mVideoEncoder;
+
+        private Surface mSurface;
 
         private final TxtOverlay mTxtOverlay;
+		private final AVWriter mAVWriter = new AVWriter(1);    // 用于左边摄像头录像
+        private AudioRecord audioRecord;    //录音
 
-        private CameraThread(final Context context, final UsbControlBlock ctrlBlock) {
+        private OutputStream snapshotOutStream;        // 用于摄像头拍照
+        private String snapshotFileName;
+
+        private boolean isRecord = false;
+        private long startTakeVideoTime = System.currentTimeMillis();
+
+		private CameraThread(final Context context, final UsbControlBlock ctrlBlock) {
 			super("CameraThread");
 			if (DEBUG) KLog.w(TAG_THREAD, "Constructor:");
 			mWeakContext = new WeakReference<Context>(context);
@@ -377,12 +393,7 @@ public final class CameraServer extends Handler {
 			loadShutterSound(context);
 
             mTxtOverlay = new TxtOverlay(context);
-            String filename = Environment.getExternalStorageDirectory() + "/SIMYOU.ttf";
 
-//            mTxtOverlay.init(320, 240, context.getApplicationContext()
-//                    .getFileStreamPath("SIMYOU.ttf").getPath());
-
-			mTxtOverlay.init(320, 240, filename);
         }
 
 		@Override
@@ -408,8 +419,9 @@ public final class CameraServer extends Handler {
 		}
 
 		public boolean isRecording() {
-			return (mUVCCamera != null) && (mMuxer != null);
-		}
+            return (mUVCCamera != null)
+                    && isRecord;
+        }
 
 		public void handleOpen() {
 			if (DEBUG) KLog.w(TAG_THREAD, "handleOpen:");
@@ -457,12 +469,22 @@ public final class CameraServer extends Handler {
 				}
 				if (mUVCCamera == null) return;
 
-				mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV);
+                mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_NV21);
 
-				mFrameWidth = width;
+
+                if (mSurface == null) {
+                    mSurface = surface;
+                }
+
+                mFrameWidth = width;
 				mFrameHeight = height;
 				mUVCCamera.setPreviewDisplay(surface);
 				mUVCCamera.startPreview();
+
+                String filename = Environment.getExternalStorageDirectory() + "/SIMYOU.ttf";
+//            mTxtOverlay.init(320, 240, context.getApplicationContext()
+//                    .getFileStreamPath("SIMYOU.ttf").getPath());
+                mTxtOverlay.init(mFrameWidth, mFrameHeight, filename);
 			}
 		}
 
@@ -475,90 +497,140 @@ public final class CameraServer extends Handler {
 			}
 		}
 
-		private void handleResize(final int width, final int height, final Surface surface) {
-			synchronized (mSync) {
-				if (mUVCCamera != null) {
-					final Size sz = mUVCCamera.getPreviewSize();
-					if ((sz != null) && ((width != sz.width) || (height != sz.height))) {
-						mUVCCamera.stopPreview();
-						try {
-							mUVCCamera.setPreviewSize(width, height);
-						} catch (final IllegalArgumentException e) {
-							try {
-								mUVCCamera.setPreviewSize(sz.width, sz.height);
-							} catch (final IllegalArgumentException e1) {
-								// unexpectedly #setPreviewSize failed
-								mUVCCamera.destroy();
-								mUVCCamera = null;
-							}
-						}
-						if (mUVCCamera == null) return;
-						mFrameWidth = width;
-						mFrameHeight = height;
-						mUVCCamera.setPreviewDisplay(surface);
-						mUVCCamera.startPreview();
-					}
-				}
-			}
-		}
+        private void handleResize(final int width, final int height, final Surface surface) {
+            if (DEBUG) KLog.w(TAG_THREAD, "handleResize begin");
+            synchronized (mSync) {
+                if (mUVCCamera != null) {
+                    final Size sz = mUVCCamera.getPreviewSize();
+                    /*if ((sz != null) && ((width != sz.width) || (height != sz.height))) {
+                        mUVCCamera.stopPreview();
+                        try {
+                            mUVCCamera.setPreviewSize(width, height);
+                        } catch (final IllegalArgumentException e) {
+                            try {
+                                mUVCCamera.setPreviewSize(sz.width, sz.height);
+                            } catch (final IllegalArgumentException e1) {
+                                // unexpectedly #setPreviewSize failed
+                                mUVCCamera.destroy();
+                                mUVCCamera = null;
+                            }
+                        }
+                        if (mUVCCamera == null) return;
+                        mFrameWidth = width;
+                        mFrameHeight = height;
+                        mUVCCamera.setPreviewDisplay(surface);
+                        mUVCCamera.startPreview();
+                    }*/
+
+                    mUVCCamera.stopPreview();
+
+                    mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_NV21);
+
+                    if (mSurface == null) {
+                        mSurface = surface;
+                    }
+
+                    mFrameWidth = width;
+                    mFrameHeight = height;
+                    mUVCCamera.setPreviewDisplay(surface);
+                    mUVCCamera.startPreview();
+
+                    String filename = Environment.getExternalStorageDirectory() + "/SIMYOU.ttf";
+//            mTxtOverlay.init(320, 240, context.getApplicationContext()
+//                    .getFileStreamPath("SIMYOU.ttf").getPath());
+                    mTxtOverlay.init(mFrameWidth, mFrameHeight, filename);
+
+                    if (DEBUG) KLog.w(TAG_THREAD, "handleResize finish");
+                }
+            }
+        }
 
 		public void handleCaptureStill(final String path) {
 			if (DEBUG) KLog.w(TAG_THREAD, "handleCaptureStill:");
 
-			mSoundPool.play(mSoundId, 0.2f, 0.2f, 0, 0, 1.0f);	// play shutter sound
-		}
+            mSoundPool.play(mSoundId, 0.2f, 0.2f, 0, 0, 1.0f);    // play shutter sound
+
+            captureSnapshot();
+        }
 
 		public void handleStartRecording() {
 			if (DEBUG) KLog.w(TAG_THREAD, "handleStartRecording:");
-			try {
-				if ((mUVCCamera == null) || (mMuxer != null)) return;
-				mMuxer = new MediaMuxerWrapper(mWeakContext.get(), ".mp4");    // if you record audio only, ".m4a" is also OK.
+            if (mUVCCamera != null) {
+                startRecord(mAVWriter, mUVCCamera);
+                //playSound("开始录像");
+                isRecord = true;
+                startTakeVideoTime = System.currentTimeMillis();
+            }
+        }
 
-				new MediaSurfaceEncoder(mMuxer, mFrameWidth, mFrameHeight, mMediaEncoderListener);
-				if (true) {
-					//TODO for audio capturing
-//					new MediaAudioEncoder(mMuxer, mMediaEncoderListener);
-				}
-				mMuxer.prepare();
-				mMuxer.startRecording();
-			} catch (final IOException e) {
-				KLog.e(TAG, "startCapture:", e);
-			}
-		}
+        private void startRecord(AVWriter avWriter, UVCCamera uvcCamera) {
+            if (avWriter.isOpened() || uvcCamera == null) {
+                return;
+            }
 
-		private void handleStartPush() {
-			KLog.w(TAG_THREAD, "handleStartPush:mMuxer=" + mMuxer);
+            String fileName = Helper.getVideoFileName(); // 可以参考函数实现
+
+            openAVWriter(fileName, avWriter, uvcCamera);
+
+            if (avWriter.isOpened()) {
+//                startRecTimer(); // 如果编码器打开成功，则开始录像计时
+            }
+        }
+
+        private void openAVWriter(String fileName, AVWriter avWriter, UVCCamera uvcCamera) {
+            Size size = uvcCamera.getPreviewSize();
+            if (audioRecord != null) {
+                avWriter.open(fileName, size.width, size.height, audioRecord.getSampleRate(), audioRecord.getChannelCount());
+            } else {
+                avWriter.open(fileName, size.width, size.height, 0, 0);
+            }
+        }
+
+        private void stopRecord(AVWriter avWriter) {
+		    KLog.w(TAG, "录像停止, stopRecord... isOpened: " + avWriter.isOpened());
+//            stopRecTimer();
+            if (!avWriter.isOpened()) {
+                return;
+            }
+
+            final String fileName = avWriter.getRecordFileName();
+            avWriter.close(new AVWriter.ClosedCallback() {
+                @Override
+                public void closedCallback() {    // 录像文件编码完成时的异步回调
+                    Helper.fileSavedProcess(mWeakContext.get().getApplicationContext(), fileName); // 通知媒体扫描器扫描媒体文件以便在图库等app可见，可以参见函数实现
+                    KLog.w("视频成功: \"" + fileName + "\"");
+                }
+            });
+        }
+
+        private void handleStartPush() {
+            KLog.w(TAG_THREAD, "handleStartPush");
 
 //			initRtspClient(false);
-			if (mMuxer != null) {
-				synchronized (mSync) {
-					MediaEncoder.isStartPush = true;
-				}
-			}
-		}
+            synchronized (mSync) {
+                MediaEncoder.isStartPush = true;
+            }
+        }
 
-		private void handleStopPush() {
-			KLog.w(TAG_THREAD, "handleStopPush:mMuxer=" + mMuxer);
-			if (mMuxer != null) {
-				synchronized (mSync) {
-					MediaEncoder.isStartPush = false;
-				}
-			}
-		}
+        private void handleStopPush() {
+            KLog.w(TAG_THREAD, "handleStopPush:mMuxer=");
+            synchronized (mSync) {
+                MediaEncoder.isStartPush = false;
+            }
+        }
 
-		public void handleStopRecording() {
-			if (DEBUG) KLog.w(TAG_THREAD, "handleStopRecording:mMuxer=" + mMuxer);
-			if (mMuxer != null) {
-				synchronized (mSync) {
-					if (mUVCCamera != null) {
-						mUVCCamera.stopCapture();
-					}
-				}
-				mMuxer.stopRecording();
-				mMuxer = null;
-				// you should not wait here
-			}
-		}
+        public void handleStopRecording() {
+            if (DEBUG) KLog.w(TAG_THREAD, "handleStopRecording:mMuxer=");
+            synchronized (mSync) {
+                if (mUVCCamera != null) {
+                    mUVCCamera.stopCapture();
+                }
+
+                stopRecord(mAVWriter);
+                isRecord = false;
+            }
+
+        }
 
 		public void handleUpdateMedia(final String path) {
 			if (DEBUG) KLog.w(TAG_THREAD, "handleUpdateMedia:path=" + path);
@@ -581,88 +653,119 @@ public final class CameraServer extends Handler {
 		public void handleRelease() {
 			if (DEBUG) KLog.w(TAG_THREAD, "handleRelease:");
 			handleClose();
-			if (mCtrlBlock != null) {
+//            releaseCamera();
+
+            if (mCtrlBlock != null) {
 				mCtrlBlock.close();
 				mCtrlBlock = null;
 			}
-			if (!mIsRecording)
+			if (!isRecord)
 				Looper.myLooper().quit();
 		}
 
-		// if you need frame data as ByteBuffer on Java side, you can use this callback method with UVCCamera#setFrameCallback
-		private final IFrameCallback mIFrameCallback = new IFrameCallback() {
-			@Override
-			public void onFrame(final ByteBuffer frame) {
-                if (isRecording()) {
-                    final byte[] buf = new byte[frame.remaining()];
-                    frame.get(buf);
-//				KLog.w(TAG, "onFrame: " + Arrays.toString(buf));
-
-                    mTxtOverlay.overlay(buf, System.currentTimeMillis() + "");
+        /**
+         * 退出uvccamera, 参考shenyao
+         */
+        private synchronized void releaseCamera() {
+            synchronized (this) {
+                if (mAVWriter.isOpened()) {
+                    stopRecord(mAVWriter);
+                }
+                if (mUVCCamera != null) {
+                    try {
+                        //mUVCCameraL.stopPreview();
+                        mUVCCamera.setStatusCallback(null);
+                        mUVCCamera.setButtonCallback(null);
+                        mUVCCamera.close();
+                        mUVCCamera.destroy();
+                    } catch (final Exception e) {
+                        KLog.e(TAG, e.getMessage());
+                    } finally {
+                        KLog.w(TAG, "*******releaseCameraL mUVCCameraL=null");
+                        mUVCCamera = null;
+                    }
                 }
 
-			}
-		};
+                if (mSurface != null) {
+                    mSurface.release();
+                    mSurface = null;
+                }
+            }
+        }
 
-		private final IUVCServiceOnFrameAvailable mOnFrameAvailable = new IUVCServiceOnFrameAvailable() {
-			@Override
-			public IBinder asBinder() {
-				if (DEBUG) KLog.w(TAG_THREAD, "asBinder:");
-				return null;
-			}
-			@Override
-			public void onFrameAvailable() throws RemoteException {
-//				if (DEBUG) KLog.w(TAG_THREAD, "onFrameAvailable:");
-				if (mVideoEncoder != null)
-					mVideoEncoder.frameAvailableSoon();
-			}
-		};
 
-		private final MediaEncoder.MediaEncoderListener mMediaEncoderListener = new MediaEncoder.MediaEncoderListener() {
-			@Override
-			public void onPrepared(final MediaEncoder encoder) {
-				if (DEBUG) KLog.w(TAG, "onPrepared:encoder=" + encoder);
-				mIsRecording = true;
-				if (encoder instanceof MediaSurfaceEncoder)
-					try {
-						mVideoEncoder = (MediaSurfaceEncoder)encoder;
-						final Surface encoderSurface = mVideoEncoder.getInputSurface();
-						mEncoderSurfaceId = encoderSurface.hashCode();
-						mHandler.mRendererHolder.addSurface(mEncoderSurfaceId, encoderSurface, true);
-					} catch (final Exception e) {
-						KLog.e(TAG, "onPrepared:", e);
-					}
-			}
 
-			@Override
-			public void onStopped(final MediaEncoder encoder) {
-				if (DEBUG) KLog.w(TAG_THREAD, "onStopped:encoder=" + encoder);
-				if ((encoder instanceof MediaSurfaceEncoder))
-					try {
-						mIsRecording = false;
-						if (mEncoderSurfaceId > 0) {
-							try {
-								mHandler.mRendererHolder.removeSurface(mEncoderSurfaceId);
-							} catch (final Exception e) {
-								KLog.w(TAG, e);
-							}
-						}
-						mEncoderSurfaceId = -1;
-						synchronized (mSync) {
-							if (mUVCCamera != null) {
-								mUVCCamera.stopCapture();
-							}
-						}
-						mVideoEncoder = null;
-						final String path = encoder.getOutputPath();
-						if (!TextUtils.isEmpty(path)) {
-							mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_MEDIA_UPDATE, path), 1000);
-						}
-					} catch (final Exception e) {
-						KLog.e(TAG, "onPrepared:", e);
-					}
-			}
-		};
+        // 实现快照抓取
+        private synchronized void captureSnapshot() {
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd.HH.mm.ss");
+            Date currentTime = new Date();
+
+            if (mUVCCamera != null) {
+                snapshotFileName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/DualCamera_test4";
+                snapshotFileName += "/IPC_";
+                snapshotFileName += format.format(currentTime);
+                snapshotFileName += ".jpg";
+                File recordFile = new File(snapshotFileName);    // 左边摄像头快照的文件名
+                if (recordFile.exists()) {
+                    recordFile.delete();
+                }
+                try {
+                    recordFile.createNewFile();
+                    snapshotOutStream = new FileOutputStream(recordFile);
+                } catch (Exception e) {
+                }
+            }
+
+        }
+
+
+		private String getCurrentTime() {
+			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			return simpleDateFormat.format(new Date());
+		}
+
+        // if you need frame data as ByteBuffer on Java side, you can use this callback method with UVCCamera#setFrameCallback
+        private final IFrameCallback mIFrameCallback = new IFrameCallback() {
+            @Override
+            public void onFrame(final ByteBuffer frame) {
+                if (mUVCCamera == null) {
+                    return;
+                }
+
+                final Size size = mUVCCamera.getPreviewSize();
+
+                int FrameSize = frame.remaining();
+                final byte[] buffer = new byte[FrameSize];
+                frame.get(buffer);
+
+                //添加水印
+                mTxtOverlay.overlay(buffer, "" + getCurrentTime());
+
+                //录像
+                if (isRecord) {
+                    if (mAVWriter.isVideoEncoderOpened()) { // 将视频帧发送到编码器
+                        mAVWriter.putFrame(buffer, size.width, size.height);
+                    }
+
+                    // TODO: 18-1-8 下午1:58 录制声音
+                    startAudio();
+                }
+
+                // 将视频帧压缩成jpeg图片，实现快照捕获
+                if (snapshotOutStream != null) {
+                    if (!(FrameSize < size.width * size.height * 3 / 2) && (buffer != null)) {
+                        try {
+                            new YuvImage(buffer, ImageFormat.NV21, size.width, size.height, null).compressToJpeg(new Rect(0, 0, size.width, size.height), 90, snapshotOutStream);
+                            snapshotOutStream.flush();
+                            snapshotOutStream.close();
+                        } catch (Exception ex) {
+                        } finally {
+                            snapshotOutStream = null;
+                        }
+                    }
+                }
+            }
+        };
 
 		/**
 		 * prepare and load shutter sound for still image capturing
@@ -753,6 +856,107 @@ public final class CameraServer extends Handler {
                     KLog.w(TAG, "推流进程名称长度不匹配");
                     break;
             }
+        }
+
+        public void addSurface(Surface surface) {
+            KLog.w(TAG, "addSurface: hash: " + surface.hashCode());
+
+            handleResize(mFrameWidth, mFrameHeight, surface);
+        }
+
+        public void removeSurface(Surface surface) {
+            if (surface != null) {
+                surface.release();
+            }
+        }
+
+
+
+
+
+
+        /*******************    声音录制    ******************/
+        private int bufferSize;
+        private AudioThread audioThread;                // 录音线程
+
+
+        private void processAudio(byte[] buffer, int length) {
+            if (mAVWriter.isAudioEncoderOpened()) {
+                mAVWriter.putAudio(buffer, length);
+            }
+
+            /*if (avWriterR.isAudioEncoderOpened()) {
+                avWriterR.putAudio(buffer, length);
+            }*/
+            // 将麦克风捕获的PCM音频数据分别发送给编码器
+        }
+
+        private class AudioThread extends Thread {
+            private boolean bRun = true;
+
+            public void run() {
+                setName("AudioThread");
+
+                byte[] buffer = new byte[bufferSize];
+                try {
+                    while (bRun) {
+
+                        int bufferReadResult = audioRecord.read(buffer, 0, buffer.length);
+                        if (bufferReadResult <= 0) {
+                            Thread.sleep(100);
+                            continue;
+                        }
+
+                        processAudio(buffer, bufferReadResult);
+                    }
+                } catch (Exception e) {
+                    KLog.e("AudioThread", e.getMessage());
+                }
+            }
+
+            public void cancel() {
+                bRun = false;
+            }
+        }
+
+        // 开始麦克风捕获
+        private synchronized boolean startAudio() {
+
+            if (audioRecord != null || audioThread != null) { // 如果已经打开了就直接返回
+                return true;
+            }
+
+            int[] bufferSizes = new int[1];
+
+            audioRecord = Helper.findAudioRecord(true, bufferSizes); // 参考具体函数实现
+            bufferSize = bufferSizes[0];
+            if (audioRecord == null) {
+                return false;
+            }
+
+            audioRecord.startRecording();
+
+            audioThread = new AudioThread();
+            audioThread.start();
+
+            return true;
+        }
+
+        private synchronized void stopAudio() {
+
+            if (audioThread != null)
+                audioThread.cancel();
+
+            if (audioRecord != null) {
+                try {
+                    audioRecord.stop();
+                    audioRecord.release();
+                    audioRecord = null;
+                } catch (Exception e) {
+                }
+            }
+
+            audioThread = null;
         }
     }
 

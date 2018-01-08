@@ -43,7 +43,7 @@ interface IUVCService {
 	void disconnect(int serviceId);
 	boolean isConnected(int serviceId);
 	void addSurface(int serviceId, int id_surface, in Surface surface, boolean isRecordable);
-	void removeSurface(int serviceId, int id_surface);
+	void removeSurface(int serviceId, int id_surface, in Surface surface);
 	boolean isRecording(int serviceId);
 	void startRecording(int serviceId);
 	void stopRecording(int serviceId);

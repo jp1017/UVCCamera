@@ -457,7 +457,7 @@ public class CameraClient implements ICameraClient {
 				final IUVCService service = mParent.getService();
 				if (service != null)
 				try {
-					service.removeSurface(mServiceId, surface.hashCode());
+					service.removeSurface(mServiceId, surface.hashCode(), surface);
 				} catch (final RemoteException e) {
 					if (DEBUG) KLog.e(TAG_CAMERA, "handleRemoveSurface:", e);
 				}

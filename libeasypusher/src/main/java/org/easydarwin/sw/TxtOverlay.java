@@ -29,10 +29,11 @@ public class TxtOverlay {
             throw new IllegalArgumentException("the font file must be valid!");
         }
         if (!new File(fonts).exists()) {
-            throw new IllegalArgumentException("the font file must be exists!");
+//            throw new IllegalArgumentException("the font file must be exists!");
+            Log.e("TxtOverlay水印", "the font file must be exists!");
         }
         ctx = txtOverlayInit(width, height, fonts);
-        Log.w("水印", "ctx: " + ctx);
+        Log.w("TxtOverlay水印", "ctx: " + ctx);
     }
 
     public void overlay(byte[] data, String txt) {

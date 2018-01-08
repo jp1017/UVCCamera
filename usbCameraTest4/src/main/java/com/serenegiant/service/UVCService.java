@@ -89,10 +89,6 @@ public class UVCService extends BaseService {
 			KLog.w(TAG, "return mBasicBinder");
 			return mBasicBinder;
 		}
-		if (IUVCSlaveService.class.getName().equals(action)) {
-			KLog.w(TAG, "return mSlaveBinder");
-			return mSlaveBinder;
-		}
 		return null;
 	}
 
@@ -252,13 +248,14 @@ public class UVCService extends BaseService {
 		}
 	}
 
-//********************************************************************************
+	//********************************************************************************
 	private final IUVCService.Stub mBasicBinder = new IUVCService.Stub() {
 		private IUVCServiceCallback mCallback;
 
 		@Override
 		public int select(final UsbDevice device, final IUVCServiceCallback callback) throws RemoteException {
-			if (DEBUG) KLog.w(TAG, "mBasicBinder#select:device=" + (device !=null ? device.getDeviceName() : null));
+			if (DEBUG)
+				KLog.w(TAG, "mBasicBinder#select:device=" + (device != null ? device.getDeviceName() : null));
 			mCallback = callback;
 			final int serviceId = device.hashCode();
 			CameraServer server = null;
@@ -367,18 +364,19 @@ public class UVCService extends BaseService {
 
 		@Override
 		public void addSurface(final int serviceId, final int id_surface, final Surface surface, final boolean isRecordable) throws RemoteException {
-			if (DEBUG) KLog.w(TAG, "mBasicBinder#addSurface:id=" + id_surface + ",surface=" + surface);
+			KLog.w(TAG, "mBasicBinder#addSurface:id=" + id_surface + ",surface=" + surface);
 			final CameraServer server = getCameraServer(serviceId);
-			if (server != null)
-				server.addSurface(id_surface, surface, isRecordable, null);
+			if (server != null) {
+				server.addSurface(id_surface, surface, isRecordable);
+			}
 		}
 
 		@Override
-		public void removeSurface(final int serviceId, final int id_surface) throws RemoteException {
+		public void removeSurface(final int serviceId, final int id_surface, final Surface surface) throws RemoteException {
 			if (DEBUG) KLog.w(TAG, "mBasicBinder#removeSurface:id=" + id_surface);
 			final CameraServer server = getCameraServer(serviceId);
 			if (server != null)
-				server.removeSurface(id_surface);
+				server.removeSurface(id_surface, surface);
 		}
 
 		@Override
@@ -414,60 +412,23 @@ public class UVCService extends BaseService {
 			}
 		}
 
-	@Override
-	public void startPush(int serviceId) throws RemoteException {
-		KLog.w(TAG, "mBasicBinder#startPush:");
-		final CameraServer server = getCameraServer(serviceId);
-		if ((server != null)) {
-			server.startPush();
-		}
-	}
-
-	@Override
-	public void stopPush(int serviceId) throws RemoteException {
-		KLog.w(TAG, "mBasicBinder#stopPush:");
-		final CameraServer server = getCameraServer(serviceId);
-		if ((server != null)) {
-			server.stopPush();
-		}
-	}
-
-};
-
-//********************************************************************************
-	private final IUVCSlaveService.Stub mSlaveBinder = new IUVCSlaveService.Stub() {
 		@Override
-		public boolean isSelected(final int serviceID) throws RemoteException {
-			return getCameraServer(serviceID) != null;
-		}
-
-		@Override
-		public boolean isConnected(final int serviceID) throws RemoteException {
-			final CameraServer server = getCameraServer(serviceID);
-			return server != null && server.isConnected();
-		}
-
-		@Override
-		public void addSurface(final int serviceID, final int id_surface, final Surface surface, final boolean isRecordable, final IUVCServiceOnFrameAvailable callback) throws RemoteException {
-			if (DEBUG) KLog.w(TAG, "mSlaveBinder#addSurface:id=" + id_surface + ",surface=" + surface);
-			final CameraServer server = getCameraServer(serviceID);
-			if (server != null) {
-				server.addSurface(id_surface, surface, isRecordable, callback);
-			} else {
-				KLog.e(TAG, "failed to get CameraServer:serviceID=" + serviceID);
+		public void startPush(int serviceId) throws RemoteException {
+			KLog.w(TAG, "mBasicBinder#startPush:");
+			final CameraServer server = getCameraServer(serviceId);
+			if ((server != null)) {
+				server.startPush();
 			}
 		}
 
 		@Override
-		public void removeSurface(final int serviceID, final int id_surface) throws RemoteException {
-			if (DEBUG) KLog.w(TAG, "mSlaveBinder#removeSurface:id=" + id_surface);
-			final CameraServer server = getCameraServer(serviceID);
-			if (server != null) {
-				server.removeSurface(id_surface);
-			} else {
-				KLog.e(TAG, "failed to get CameraServer:serviceID=" + serviceID);
+		public void stopPush(int serviceId) throws RemoteException {
+			KLog.w(TAG, "mBasicBinder#stopPush:");
+			final CameraServer server = getCameraServer(serviceId);
+			if ((server != null)) {
+				server.stopPush();
 			}
 		}
+
 	};
-
 }

@@ -34,21 +34,28 @@
     tools:context=".MainActivity" >
 
 
-	<com.serenegiant.widget.UVCCameraTextureView
+	<com.serenegiant.widget.UVCCameraTextureView2
+        android:id="@+id/camera_view2"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true"
+        />
+
+    <com.serenegiant.widget.UVCCameraTextureView
         android:id="@+id/camera_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_centerInParent="true"
-        android:layout_weight="1" />
+        />
 
 	<ImageView
         android:id="@+id/frame_image"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/camera_view"
-        android:layout_alignBottom="@+id/camera_view"
-        android:layout_alignLeft="@+id/camera_view"
-        android:layout_alignRight="@+id/camera_view"
+        android:layout_alignTop="@+id/camera_view2"
+        android:layout_alignBottom="@+id/camera_view2"
+        android:layout_alignLeft="@+id/camera_view2"
+        android:layout_alignRight="@+id/camera_view2"
         android:src="@drawable/border" />
 
     <TextView
@@ -66,7 +73,7 @@
         android:id="@+id/ll_main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@id/camera_view"
+        android:layout_alignBottom="@id/camera_view2"
         android:gravity="bottom|center_horizontal" >
 
         <Button
@@ -86,7 +93,7 @@
         android:id="@+id/preview_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/camera_view"
+        android:layout_alignLeft="@+id/camera_view2"
         android:layout_gravity="center_horizontal"
         android:text="ToggleButton" />
 
@@ -95,8 +102,10 @@
         android:layout_margin="5dp"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:layout_alignRight="@+id/camera_view"
-        android:layout_alignTop="@+id/camera_view" />
+        android:layout_alignRight="@+id/camera_view2"
+        android:layout_alignTop="@+id/camera_view2"
+        android:visibility="gone"
+        />
 
     <TextView
         android:id="@+id/tv_pusher_status"
@@ -104,7 +113,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="5dp"
         android:layout_below="@+id/camera_view_sub"
-        android:layout_alignRight="@+id/camera_view"
+        android:layout_alignRight="@+id/camera_view2"
         android:textColor="@color/RED"
         tools:text="推流状态"
         />
@@ -113,7 +122,7 @@
         android:id="@+id/record_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/camera_view"
+        android:layout_alignLeft="@+id/camera_view2"
         android:layout_below="@id/preview_button"
         android:layout_marginLeft="@dimen/horizontal_margin"
         android:layout_marginTop="@dimen/vertical_margin"
@@ -124,7 +133,7 @@
         android:id="@+id/still_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/camera_view"
+        android:layout_alignLeft="@+id/camera_view2"
         android:layout_below="@id/record_button"
         android:layout_marginLeft="@dimen/horizontal_margin"
         android:layout_marginTop="@dimen/vertical_margin"

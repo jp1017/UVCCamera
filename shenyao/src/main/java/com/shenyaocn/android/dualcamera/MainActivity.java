@@ -139,7 +139,9 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
                 + "/SIMYOU.ttf");
 
         initView();
+
         initOnclick();
+
         handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -722,8 +724,9 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
                         if (st != null) {
                             Log.w(TAG, "*******mUVCCameraViewL.getSurfaceTexture ok");
                             mLeftPreviewSurface = new Surface(st);
-                            if (mLeftPreviewSurface != null)
+                            if (mLeftPreviewSurface != null) {
                                 Log.w(TAG, "*******mLeftPreviewSurface create ok");
+                            }
                         }
                         mUVCCameraL.setPreviewDisplay(mLeftPreviewSurface);
 
@@ -834,7 +837,6 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
             }
 
             if (snapshotOutStreamL != null) { // 将视频帧压缩成jpeg图片，实现快照捕获
-
                 if (!(FrameSize < size.width * size.height * 3 / 2) && (buffer != null)) {
                     try {
                         new YuvImage(buffer, ImageFormat.NV21, size.width, size.height, null).compressToJpeg(new Rect(0, 0, size.width, size.height), 90, snapshotOutStreamL);

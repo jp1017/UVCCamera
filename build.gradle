@@ -13,8 +13,8 @@ buildscript {
 
 allprojects {
     repositories {
+    	maven { url 'http://raw.github.com/saki4510t/libcommon/master/repository/' }
 		maven { url "https://jitpack.io" }
-		maven { url 'http://raw.github.com/saki4510t/libcommon/master/repository/' }
         jcenter()
         google()
     }
@@ -55,9 +55,9 @@ configurations.all {
 
 ext {
 	supportLibVersion = '25.3.1'  // variable that can be referenced to keep support libs consistent
-	commonLibVersion= '1.11.4'
-	versionBuildTool = '27.0.3'
-	versionCompiler = 27
+	commonLibVersion= '1.5.2'
+	versionBuildTool = '25.0.3'
+	versionCompiler = 25
 	versionTarget = 25
 	versionNameString = '1.0.0'
 	javaSourceCompatibility = JavaVersion.VERSION_1_7

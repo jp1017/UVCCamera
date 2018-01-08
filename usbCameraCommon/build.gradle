@@ -61,6 +61,9 @@ dependencies {
    	
    	compile 'com.github.zhaokaiqiang.klog:library:1.6.0'
    	
+   	compile 'com.googlecode.mp4parser:isoparser:1.1.17'
+
+   	
    	compile 'org.greenrobot:eventbus:3.1.1'
    	
     compile project(':libuvccamera')

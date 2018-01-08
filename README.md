@@ -74,6 +74,11 @@ setPreviewTexture method in UVCCamera.java etc.), but we have not confirm whethe
 project run on Android 3.1 yet.
 Some sample projects need API>=18 though.
 
+### 2018/01/08
+1. shenyao视频音频, 分别编码移植到test4
+1. 尝试用shenyao的布局,不用RenderHolder, 但是退出程序会出现E/Surface: dequeueBuffer failed (No such device)
+1. test4添加水印完成
+
 ### 2018/01/05
 1. 添加shenyao双摄像头库
 1. shenyao库添加水印成功,推流失败
