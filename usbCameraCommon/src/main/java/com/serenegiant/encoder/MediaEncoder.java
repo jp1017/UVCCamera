@@ -39,8 +39,6 @@ import com.socks.library.KLog;
 import org.easydarwin.push.Constants;
 import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
-import org.easydarwin.push.Pusher;
-import org.easydarwin.sw.TxtOverlay;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;

@@ -26,6 +26,7 @@ package com.serenegiant.usbcameratest4;
 import android.app.Fragment;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
@@ -35,14 +36,25 @@ import com.github.anrwatchdog.ANRWatchDog;
 import com.serenegiant.common.BaseActivity;
 import com.serenegiant.service.LogService;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 public class MainActivity extends BaseActivity {
 	private static final boolean DEBUG = false;
 	private static final String TAG = "MainActivity";
 
-	@Override
+//    public static final String NAME_FONT = "MICO.ttf";
+    public static final String NAME_FONT = "SIMYOU.subset.ttf";
+
+
+    @Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		//屏幕常亮
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+		createFontsFile();
 
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -94,6 +106,32 @@ public class MainActivity extends BaseActivity {
         	setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
         	break;
         }
+	}
+
+	private void createFontsFile() {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				File youyuan = getFileStreamPath(NAME_FONT);
+				if (!youyuan.exists()){
+					AssetManager am = getAssets();
+					try {
+						InputStream is = am.open("zk/" + NAME_FONT);
+						FileOutputStream os = openFileOutput(NAME_FONT, MODE_PRIVATE);
+						byte[] buffer = new byte[1024];
+						int len = 0;
+						while ((len = is.read(buffer)) != -1) {
+							os.write(buffer, 0, len);
+						}
+						os.close();
+						is.close();
+
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
 	}
 
 }

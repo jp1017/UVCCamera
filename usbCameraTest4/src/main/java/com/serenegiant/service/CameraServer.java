@@ -27,10 +27,11 @@ import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
-import android.media.AudioManager;
 import android.media.AudioRecord;
+import android.media.MediaPlayer;
 import android.media.MediaScannerConnection;
-import android.media.SoundPool;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -44,6 +45,7 @@ import com.serenegiant.usb.IFrameCallback;
 import com.serenegiant.usb.Size;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.usb.UVCCamera;
+import com.serenegiant.usbcameratest4.MainActivity;
 import com.serenegiant.usbcameratest4.R;
 import com.shenyaocn.android.Encoder.AVWriter;
 import com.shenyaocn.android.Encoder.Helper;
@@ -58,7 +60,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -361,10 +362,6 @@ public final class CameraServer extends Handler {
 		private final WeakReference<Context> mWeakContext;
 		private int mFrameWidth, mFrameHeight;
 
-		/**
-		 * shutter sound
-		 */
-		private SoundPool mSoundPool;
 		private int mSoundId;
 		private CameraServer mHandler;
 		private UsbControlBlock mCtrlBlock;
@@ -385,15 +382,15 @@ public final class CameraServer extends Handler {
         private boolean isRecord = false;
         private long startTakeVideoTime = System.currentTimeMillis();
 
+        private MediaPlayer mMediaPlayer;
+
 		private CameraThread(final Context context, final UsbControlBlock ctrlBlock) {
 			super("CameraThread");
 			if (DEBUG) KLog.w(TAG_THREAD, "Constructor:");
 			mWeakContext = new WeakReference<Context>(context);
 			mCtrlBlock = ctrlBlock;
-			loadShutterSound(context);
 
             mTxtOverlay = new TxtOverlay(context);
-
         }
 
 		@Override
@@ -469,8 +466,10 @@ public final class CameraServer extends Handler {
 				}
 				if (mUVCCamera == null) return;
 
-                mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_NV21);
+                mTxtOverlay.init(width, height, mWeakContext.get()
+                        .getFileStreamPath(MainActivity.NAME_FONT).getPath());
 
+                mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_NV21);
 
                 if (mSurface == null) {
                     mSurface = surface;
@@ -480,11 +479,6 @@ public final class CameraServer extends Handler {
 				mFrameHeight = height;
 				mUVCCamera.setPreviewDisplay(surface);
 				mUVCCamera.startPreview();
-
-                String filename = Environment.getExternalStorageDirectory() + "/SIMYOU.ttf";
-//            mTxtOverlay.init(320, 240, context.getApplicationContext()
-//                    .getFileStreamPath("SIMYOU.ttf").getPath());
-                mTxtOverlay.init(mFrameWidth, mFrameHeight, filename);
 			}
 		}
 
@@ -502,6 +496,11 @@ public final class CameraServer extends Handler {
             synchronized (mSync) {
                 if (mUVCCamera != null) {
                     final Size sz = mUVCCamera.getPreviewSize();
+
+                    if (sz == null) {
+                        return;
+                    }
+
                     /*if ((sz != null) && ((width != sz.width) || (height != sz.height))) {
                         mUVCCamera.stopPreview();
                         try {
@@ -524,6 +523,22 @@ public final class CameraServer extends Handler {
 
                     mUVCCamera.stopPreview();
 
+                    try {
+                        mUVCCamera.setPreviewSize(width, height);
+                    } catch (final IllegalArgumentException e) {
+                        try {
+                            mUVCCamera.setPreviewSize(sz.width, sz.height);
+                        } catch (final IllegalArgumentException e1) {
+                            mUVCCamera.destroy();
+                            mUVCCamera = null;
+                        }
+                    }
+
+                    if (mUVCCamera == null) return;
+
+//                    mTxtOverlay.init(width, height, mWeakContext.get()
+//                            .getFileStreamPath(MainActivity.NAME_FONT).getPath());
+
                     mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_NV21);
 
                     if (mSurface == null) {
@@ -535,11 +550,6 @@ public final class CameraServer extends Handler {
                     mUVCCamera.setPreviewDisplay(surface);
                     mUVCCamera.startPreview();
 
-                    String filename = Environment.getExternalStorageDirectory() + "/SIMYOU.ttf";
-//            mTxtOverlay.init(320, 240, context.getApplicationContext()
-//                    .getFileStreamPath("SIMYOU.ttf").getPath());
-                    mTxtOverlay.init(mFrameWidth, mFrameHeight, filename);
-
                     if (DEBUG) KLog.w(TAG_THREAD, "handleResize finish");
                 }
             }
@@ -548,9 +558,24 @@ public final class CameraServer extends Handler {
 		public void handleCaptureStill(final String path) {
 			if (DEBUG) KLog.w(TAG_THREAD, "handleCaptureStill:");
 
-            mSoundPool.play(mSoundId, 0.2f, 0.2f, 0, 0, 1.0f);    // play shutter sound
-
             captureSnapshot();
+
+            //拍照声音
+            playRing(mWeakContext.get());
+        }
+
+        /**
+         * 拍照声音
+         * @param context
+         * 通知  {@link RingtoneManager#TYPE_NOTIFICATION}
+         * 闹钟  {@link RingtoneManager#TYPE_ALARM}
+         * 铃声  {@link RingtoneManager#TYPE_RINGTONE}
+         */
+        public void playRing(Context context) {
+            mMediaPlayer = MediaPlayer.create(context, Uri.parse("android.resource://"
+                    + context.getPackageName() + "/" + R.raw.camera_click));
+//            mMediaPlayer.setLooping(true);
+            mMediaPlayer.start();
         }
 
 		public void handleStartRecording() {
@@ -739,7 +764,7 @@ public final class CameraServer extends Handler {
                 frame.get(buffer);
 
                 //添加水印
-                mTxtOverlay.overlay(buffer, "" + getCurrentTime());
+                mTxtOverlay.overlay(buffer, "鲁BE3P36 " + getCurrentTime());
 
                 //录像
                 if (isRecord) {
@@ -755,10 +780,13 @@ public final class CameraServer extends Handler {
                 if (snapshotOutStream != null) {
                     if (!(FrameSize < size.width * size.height * 3 / 2) && (buffer != null)) {
                         try {
-                            new YuvImage(buffer, ImageFormat.NV21, size.width, size.height, null).compressToJpeg(new Rect(0, 0, size.width, size.height), 90, snapshotOutStream);
+                            new YuvImage(buffer, ImageFormat.NV21, size.width, size.height, null)
+									.compressToJpeg(new Rect(0, 0, size.width, size.height),
+											90, snapshotOutStream);
                             snapshotOutStream.flush();
                             snapshotOutStream.close();
                         } catch (Exception ex) {
+                        	KLog.e(TAG, ex);
                         } finally {
                             snapshotOutStream = null;
                         }
@@ -766,33 +794,6 @@ public final class CameraServer extends Handler {
                 }
             }
         };
-
-		/**
-		 * prepare and load shutter sound for still image capturing
-		 */
-		@SuppressWarnings("deprecation")
-		private void loadShutterSound(final Context context) {
-			if (DEBUG) KLog.w(TAG_THREAD, "loadShutterSound:");
-			// get system stream type using refrection
-			int streamType;
-			try {
-				final Class<?> audioSystemClass = Class.forName("android.media.AudioSystem");
-				final Field sseField = audioSystemClass.getDeclaredField("STREAM_SYSTEM_ENFORCED");
-				streamType = sseField.getInt(null);
-			} catch (final Exception e) {
-				streamType = AudioManager.STREAM_SYSTEM;	// set appropriate according to your app policy
-			}
-			if (mSoundPool != null) {
-				try {
-					mSoundPool.release();
-				} catch (final Exception e) {
-				}
-				mSoundPool = null;
-			}
-			// load sutter sound from resource
-			mSoundPool = new SoundPool(2, streamType, 0);
-			mSoundId = mSoundPool.load(context, R.raw.camera_click, 1);
-		}
 
 		@Override
 		public void run() {
@@ -805,8 +806,12 @@ public final class CameraServer extends Handler {
 			Looper.loop();
 			synchronized (mSync) {
 				mHandler = null;
-				mSoundPool.release();
-				mSoundPool = null;
+
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.stop();
+                    mMediaPlayer.release();
+                    mMediaPlayer = null;
+                }
 				mSync.notifyAll();
 			}
 			if (DEBUG) KLog.w(TAG_THREAD, "run:finished");
@@ -958,6 +963,9 @@ public final class CameraServer extends Handler {
 
             audioThread = null;
         }
+
+        /*******************    声音录制    ******************/
+
     }
 
 }

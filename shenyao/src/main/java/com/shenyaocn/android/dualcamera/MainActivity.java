@@ -2,6 +2,7 @@ package com.shenyaocn.android.dualcamera;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.content.res.AssetManager;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -40,6 +41,8 @@ import org.easydarwin.sw.TxtOverlay;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
@@ -53,6 +56,9 @@ import java.util.TimerTask;
 public final class MainActivity extends Activity implements CameraDialog.CameraDialogParent {
     private static final boolean DEBUG = true;    // 用于显示调试信息
     private static final String TAG = "MainActivity";
+
+//    public static final String NAME_FONT = "SIMYOU.ttf";
+    public static final String NAME_FONT = "MICO.ttf";
 
     private AVWriter avWriterL = new AVWriter(1);    // 用于左边摄像头录像
     private AVWriter avWriterR = new AVWriter(2);    // 用于右边摄像头录像
@@ -110,6 +116,8 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // 避免屏幕关闭
         super.onCreate(savedInstanceState);
 
+        createFontsFile();
+
         setContentView(R.layout.activity_camera_show);
 
         //        refreshControls();
@@ -134,9 +142,9 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
         mUVCCameraViewR.setOnClickListener(mOnClickListener);
         tvRecordTime = (TextView) findViewById(R.id.tvRecordTime);
 
-        mTxtOverlay = new TxtOverlay(this);
-        mTxtOverlay.init(currentWidth, currentHeight, Environment.getExternalStorageDirectory()
-                + "/SIMYOU.ttf");
+        mTxtOverlay = new TxtOverlay(MainActivity.this);
+        mTxtOverlay.init(currentWidth, currentHeight,
+                getFileStreamPath(NAME_FONT).getPath());
 
         initView();
 
@@ -166,6 +174,32 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
             }
         };
 
+    }
+
+    private void createFontsFile() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File youyuan = getFileStreamPath(NAME_FONT);
+                if (!youyuan.exists()){
+                    AssetManager am = getAssets();
+                    try {
+                        InputStream is = am.open("zk/" + NAME_FONT);
+                        FileOutputStream os = openFileOutput(NAME_FONT, MODE_PRIVATE);
+                        byte[] buffer = new byte[1024];
+                        int len = 0;
+                        while ((len = is.read(buffer)) != -1) {
+                            os.write(buffer, 0, len);
+                        }
+                        os.close();
+                        is.close();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 
     @Override

@@ -26,7 +26,8 @@ public class TxtOverlay {
 
     public void init(int width, int height, String fonts) {
         if (TextUtils.isEmpty(fonts)) {
-            throw new IllegalArgumentException("the font file must be valid!");
+            Log.e("TxtOverlay水印", "the font file must be valid!");
+//            throw new IllegalArgumentException("the font file must be valid!");
         }
         if (!new File(fonts).exists()) {
 //            throw new IllegalArgumentException("the font file must be exists!");

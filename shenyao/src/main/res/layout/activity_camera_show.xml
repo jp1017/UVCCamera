@@ -140,7 +140,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/WHITE"
                 android:layout_marginRight="5dp"
-                android:textSize="22dp"
+                android:textSize="20dp"
                 android:text="自动测试"/>
 
             <ToggleButton
@@ -169,9 +169,9 @@
                     android:id="@+id/btn_back"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="24sp"
+                    android:textSize="18sp"
                     android:background="@null"
-                    android:layout_marginLeft="50dp"
+                    android:layout_marginLeft="40dp"
                     android:textColor="@color/WHITE"
                     android:text="退出" />
         </LinearLayout>

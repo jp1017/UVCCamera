@@ -26,7 +26,6 @@ package com.serenegiant.usbcameratest4;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
-import android.graphics.SurfaceTexture;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 import android.os.Environment;
@@ -55,7 +54,6 @@ import com.serenegiant.usb.USBMonitor;
 import com.serenegiant.usb.USBMonitor.OnDeviceConnectListener;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.widget.UVCCameraTextureView;
-import com.serenegiant.widget.UVCCameraTextureView2;
 import com.socks.library.KLog;
 
 import org.easydarwin.push.EasyPusher;
@@ -80,9 +78,7 @@ public class CameraFragment extends BaseFragment {
 	private ImageButton mRecordButton;
 	private ImageButton mStillCaptureButton;
 
-	private UVCCameraTextureView2 mCameraView2;
 	private UVCCameraTextureView mCameraView;
-    private Surface mPreviewSurface2;
     private Surface mPreviewSurface;
 
     private TextView mTvPusherStatus;
@@ -90,8 +86,6 @@ public class CameraFragment extends BaseFragment {
 
 //    private SurfaceView mCameraViewSub;
 	private boolean isSubView;
-
-	private boolean isRenderHolder = true; //是否使用RenderHolder, 是采用UVCCameraTextureView, 否采用UVCCameraTextureView2
 
 	public CameraFragment() {
 		if (DEBUG) KLog.w(TAG, "Constructor:");
@@ -139,19 +133,8 @@ public class CameraFragment extends BaseFragment {
 		mStillCaptureButton.setOnClickListener(mOnClickListener);
 		mStillCaptureButton.setEnabled(false);
 
-		mCameraView2 = (UVCCameraTextureView2) rootView.findViewById(R.id.camera_view2);
-		mCameraView2.setAspectRatio(DEFAULT_WIDTH / (float)DEFAULT_HEIGHT);
-
         mCameraView = (UVCCameraTextureView) rootView.findViewById(R.id.camera_view);
         mCameraView.setAspectRatio(DEFAULT_WIDTH / (float)DEFAULT_HEIGHT);
-
-        if (isRenderHolder) {
-            mCameraView.setVisibility(View.VISIBLE);
-            mCameraView2.setVisibility(View.GONE);
-        } else {
-            mCameraView.setVisibility(View.GONE);
-            mCameraView2.setVisibility(View.VISIBLE);
-        }
 
 //		mCameraViewSub = (SurfaceView)rootView.findViewById(R.id.camera_view_sub);
 //		mCameraViewSub.setOnClickListener(mOnClickListener);
@@ -168,10 +151,6 @@ public class CameraFragment extends BaseFragment {
 		if (DEBUG) KLog.w(TAG, "onResume:");
 		mUSBMonitor.register();
 
-        if (mCameraView2 != null) {
-            mCameraView2.onResume();
-        }
-
         if (mCameraView != null) {
             mCameraView.onResume();
         }
@@ -186,11 +165,6 @@ public class CameraFragment extends BaseFragment {
         }*/
 
         if (mCameraClient != null) {
-            if (mPreviewSurface2 != null) {
-                mCameraClient.removeSurface(mPreviewSurface2);
-                mPreviewSurface2.release();
-                mPreviewSurface2 = null;
-            }
 
             if (mPreviewSurface != null) {
                 mCameraClient.removeSurface(mPreviewSurface);
@@ -200,13 +174,6 @@ public class CameraFragment extends BaseFragment {
 //			mCameraClient.removeSurface(mCameraViewSub.getHolder().getSurface());
 			isSubView = false;
 		}
-
-
-
-        if (mCameraView2 != null) {
-            mCameraView2.onPause();
-            mCameraView2 = null;
-        }
 
         if (mCameraView != null) {
             mCameraView.onPause();
@@ -390,17 +357,11 @@ public class CameraFragment extends BaseFragment {
 		public void onConnect() {
             KLog.w(TAG, "onConnect");
 
-            if (isRenderHolder) {
-                if (mCameraView == null) {
-                    return;
-                }
-            } else {
-                if (mCameraView2 == null
+			if (mCameraView == null
 //                    || mCameraViewSub == null
-                        ) {
-                    return;
-                }
-            }
+					) {
+				return;
+			}
 
 
 			KLog.w(TAG, "onConnect: " + "thread: " + Thread.currentThread().getName());
@@ -412,24 +373,13 @@ public class CameraFragment extends BaseFragment {
 			final Intent intent = new Intent(getActivity(), UVCService.class);
 			getActivity().startService(intent);
 
-            SystemClock.sleep(500);
+//            SystemClock.sleep(500);
 
-            if (!isRenderHolder) {
-                final SurfaceTexture st = mCameraView2.getSurfaceTexture();
-                if (st != null) {
-                    KLog.w(TAG, "*******mCameraView2.getSurfaceTexture ok");
-                    mPreviewSurface2 = new Surface(st);
-                    if (mPreviewSurface2 != null) {
-                        KLog.w(TAG, "*******mPreviewSurface2 create ok");
-                    }
-                }
+			mPreviewSurface = mCameraView.getSurface();
+			mCameraClient.addSurface(mPreviewSurface, true);
 
-//            mCameraClient.addSurface(mCameraViewSub.getHolder().getSurface(), false);
-                mCameraClient.addSurface(mPreviewSurface2, false);
-            } else {
-                mPreviewSurface = mCameraView.getSurface();
-                mCameraClient.addSurface(mPreviewSurface, true);
-            }
+//			mCameraClient.addSurface(mCameraViewSub.getHolder().getSurface(), false);
+
 
         }
 
@@ -497,7 +447,7 @@ public class CameraFragment extends BaseFragment {
 								mCameraClient.startRecording();
 
 								//推流测试
-								mCameraClient.startPush();
+//								mCameraClient.startPush();
 
 								runOnUiThread(new Runnable() {
 									@Override
@@ -529,25 +479,17 @@ public class CameraFragment extends BaseFragment {
 	private final OnCheckedChangeListener mOnCheckedChangeListener = new OnCheckedChangeListener() {
 		@Override
 		public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
-            KLog.w(TAG, "onCheckedChanged:" + isChecked + ", addSurface,  isRenderHolder: "
-                    + isRenderHolder);
+            KLog.w(TAG, "onCheckedChanged:" + isChecked + ", addSurface");
 
             if (isChecked) {
-                if (isRenderHolder) {
-                    SystemClock.sleep(500);
+//				SystemClock.sleep(500);
 
-                    mPreviewSurface = mCameraView.getSurface();
-                    mCameraClient.addSurface(mPreviewSurface, true);
-                } else {
-                    mCameraClient.addSurface(mPreviewSurface2, false);
-                }
+				mPreviewSurface = mCameraView.getSurface();
+				mCameraClient.addSurface(mPreviewSurface, true);
 //				mCameraClient.addSurface(mCameraViewSub.getHolder().getSurface(), false);
 			} else {
-                if (isRenderHolder) {
-                    mCameraClient.removeSurface(mPreviewSurface);
-                } else {
-                    mCameraClient.removeSurface(mPreviewSurface2);
-                }
+				mCameraClient.removeSurface(mPreviewSurface);
+
 //				mCameraClient.removeSurface(mCameraViewSub.getHolder().getSurface());
 			}
 		}
