@@ -43,20 +43,9 @@
 
 package com.shenyaocn.android.Encoder;
 
-import com.coremedia.iso.boxes.Container;
-import com.googlecode.mp4parser.FileDataSourceImpl;
-import com.googlecode.mp4parser.authoring.Movie;
-import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
-import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
-import com.googlecode.mp4parser.authoring.tracks.AACTrackImpl;
 import com.socks.library.KLog;
 
-import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.Pusher;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.nio.channels.FileChannel;
 
 /**
  * 文 件 名: AVWriter

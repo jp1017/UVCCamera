@@ -4,7 +4,6 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
-import android.os.Build;
 
 import com.socks.library.KLog;
 
@@ -177,6 +176,8 @@ public class AvcEncoder implements Runnable {
 			byte[] h264 = new byte[mWidth * mHeight];
 
 			while (mVideoStarted) {
+                KLog.w(TAG, "consumer running ispusher; " + (mPusher != null));
+
                 int encoderStatus = mEncoderVideo.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
 				if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
 
@@ -193,8 +194,8 @@ public class AvcEncoder implements Runnable {
 
 					} else {
 						//easypusher 推流
-						ByteBuffer outputBuffer = encoderOutputBuffers[encoderStatus];
 						if (mPusher != null) {
+							ByteBuffer outputBuffer = encoderOutputBuffers[encoderStatus];
 							outputBuffer.clear();
 							outputBuffer.position(bufferInfo.offset);
 							outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
@@ -235,12 +236,7 @@ public class AvcEncoder implements Runnable {
 
 						//写入文件
 						if (true) {
-							ByteBuffer encodedData;
-							if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-								encodedData = mEncoderVideo.getOutputBuffer(encoderStatus);
-							} else {
-								encodedData = encoderOutputBuffers[encoderStatus];
-							}
+							ByteBuffer encodedData = encoderOutputBuffers[encoderStatus];
 
 							if (encodedData == null) {
 								throw new RuntimeException("encoderOutputBuffer " + encoderStatus +
@@ -258,7 +254,6 @@ public class AvcEncoder implements Runnable {
 								encodedData.limit(bufferInfo.offset + bufferInfo.size);
 
 								if (bufferInfo.presentationTimeUs < lastEncodedVideoTimeStamp) {
-
 									bufferInfo.presentationTimeUs = lastEncodedVideoTimeStamp += 100000;
 								}
 
