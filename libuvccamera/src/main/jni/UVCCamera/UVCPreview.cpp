@@ -599,7 +599,7 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 					addCaptureFrame(frame);
 				}
 			}
-        } else {
+        } /*else {
             //h264压缩
             LOGI("Streaming...h264 running");
 
@@ -609,7 +609,7 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
                     do_h264_callback(frame);
                 }
             }
-        }
+        }*/
 
         LOGI("frame=%d", frame);
 

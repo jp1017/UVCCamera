@@ -40,13 +40,13 @@ android {
 repositories {
     flatDir { dirs 'libs' }
 }
+
 dependencies {
     /*compile('com.serenegiant:common:1.1.9') {
         exclude module: 'support-v4'
     }*/
-//    compile(name: 'libuvccamera', ext: 'aar')
-    compile project(':libuvccamera')
-//    compile project(':usbCameraCommon')
+    compile(name: 'libuvccamera_easypusher', ext: 'aar')
+//    compile project(':libuvccamera')
 
 //    compile 'com.android.support:appcompat-v7:25.3.1'
 //    compile 'com.android.support:support-v4:25.3.1'

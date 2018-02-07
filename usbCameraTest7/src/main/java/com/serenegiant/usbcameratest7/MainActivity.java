@@ -35,7 +35,6 @@ import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
-import com.ford.openxc.webcam.webcam.WebcamPreview;
 import com.serenegiant.common.BaseActivity;
 import com.serenegiant.service.LogService;
 import com.serenegiant.usb.CameraDialog;
@@ -59,15 +58,14 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 
 	//带宽, 影响每包的最大数据量, 见libuvc/stream.c下函数uvc_stream_start_bandwidth
 	// TODO: 17-9-9 下午4:01 yuyv设置为1, mjpeg设置为0.5 来自:= https://github.com/saki4510t/UVCCamera/issues/231#issuecomment-328016969
-	private static final float[] BANDWIDTH_FACTORS = {0.5f, 0.5f};
+	// 20180116测试,可都为1.0, 但是需要一个为MJPEG, 一个为YUYV
+	private static final float[] BANDWIDTH_FACTORS = {1.0f, 1.0f};
 
 	private static final int WIDTH = UVCCamera.DEFAULT_PREVIEW_WIDTH / 2;
 	private static final int HEIGHT = UVCCamera.DEFAULT_PREVIEW_HEIGHT / 2;
 
 	// for accessing USB and USB camera
 	private USBMonitor mUSBMonitor;
-
-	private WebcamPreview mWebcamPreview;
 
 	private UVCCameraHandler mHandlerR;
 	private CameraViewInterface mUVCCameraViewR;
@@ -91,9 +89,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		//记录日志
 //		startService(new Intent(this, LogService.class));
 
-		mWebcamPreview = (WebcamPreview) findViewById(R.id.camera_view_preview);
-
-		findViewById(R.id.RelativeLayout1).setOnClickListener(mOnClickListener);
 		mUVCCameraViewL = (CameraViewInterface) findViewById(R.id.camera_view_L);
 		mUVCCameraViewL.setAspectRatio(WIDTH / (float) HEIGHT);
 		((UVCCameraTextureView) mUVCCameraViewL).setOnClickListener(mOnClickListener);
@@ -111,7 +106,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		mCaptureButtonR.setOnClickListener(mOnClickListener);
 		mCaptureButtonR.setVisibility(View.INVISIBLE);
 		mHandlerR = UVCCameraHandler.createHandler(this, mUVCCameraViewR, WIDTH,
-				HEIGHT, UVCCamera.FRAME_FORMAT_MJPEG, BANDWIDTH_FACTORS[1]);
+				HEIGHT, UVCCamera.FRAME_FORMAT_YUYV, BANDWIDTH_FACTORS[1]);
 
 		mUSBMonitor = new USBMonitor(this, mOnDeviceConnectListener);
 	}

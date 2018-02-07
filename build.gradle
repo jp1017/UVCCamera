@@ -17,6 +17,10 @@ allprojects {
 		maven { url "https://jitpack.io" }
         jcenter()
         google()
+
+		flatDir {
+			dirs "libs"
+		}
     }
 
 

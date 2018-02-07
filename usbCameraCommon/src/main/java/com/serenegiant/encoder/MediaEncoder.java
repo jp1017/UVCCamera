@@ -241,7 +241,7 @@ public abstract class MediaEncoder implements Runnable, InitCallback, ConnectChe
 
                 KLog.w(TAG, "pushing : url: " + url);
 
-                mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id), Constants.KEY_EASYPUSHER,
+                mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id),
                         context.getApplicationContext(), this);
 
                 //新版本

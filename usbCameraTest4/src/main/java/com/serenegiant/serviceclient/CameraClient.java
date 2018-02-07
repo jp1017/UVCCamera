@@ -308,7 +308,7 @@ public class CameraClient implements ICameraClient {
 					mCameraTask.handleCaptureStill((String) msg.obj);
 					break;
 				case MSG_PUSH_START:
-					mCameraTask.handleStartPush((String) msg.obj);
+					mCameraTask.handleStartPush();
 					break;
 				case MSG_PUSH_STOP:
 					mCameraTask.handleStopPush((String) msg.obj);
@@ -512,7 +512,7 @@ public class CameraClient implements ICameraClient {
 			}
 
 
-			private void handleStartPush(String videoIp) {
+			private void handleStartPush() {
 				KLog.w(TAG_CAMERA, "handleStartPush");
 				final IUVCService service = mParent.getService();
 				if (service != null)

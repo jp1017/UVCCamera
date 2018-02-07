@@ -447,7 +447,7 @@ public class CameraFragment extends BaseFragment {
 								mCameraClient.startRecording();
 
 								//推流测试
-//								mCameraClient.startPush();
+								mCameraClient.startPush();
 
 								runOnUiThread(new Runnable() {
 									@Override

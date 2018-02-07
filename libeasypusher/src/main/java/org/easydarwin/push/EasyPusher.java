@@ -7,27 +7,17 @@
 package org.easydarwin.push;
 
 import android.content.Context;
+import android.provider.Settings;
 import android.util.Log;
 
-
-/**
- * 文 件 名: EasyPusher
- * 创 建 人: 蒋朋
- * 创建日期: 17-2-6 08:58
- * 邮    箱: jp19891017@gmail.com
- * 博    客: https://jp1017.github.io/
- * 描    述: EasyPusher, 必须保证包名和类名不变, 否则so要变
- * 修 改 人:
- * 修改时间：
- * 修改备注：
- */
-
-public class EasyPusher implements Pusher {
-
-    private final static String TAG = "EasyPusher";
+public class EasyPusher implements Pusher{
+    /*
+    *本Key为3个月临时授权License，如需商业使用，请邮件至support@easydarwin.org申请此产品的授权。
+    */
+    private static final String KEY = "6A36334A743536526D3430414D4E425A70692F50532B706A62323075643256706333526C61793578636D4E76626D356C59335258444661672F307667523246326157346D516D466962334E68514449774D545A4659584E355247467964326C75564756686257566863336B3D";
+    private static String TAG = "EasyPusher";
 
     static {
-        Log.w(TAG, "加载easypusher so库");
         System.loadLibrary("easypusher");
     }
 
@@ -58,7 +48,7 @@ public class EasyPusher implements Pusher {
 
     }
 
-    private volatile long mPusherObj = 0;
+    private long mPusherObj = 0;
 
 //    public native void setOnInitPusherCallback(OnInitPusherCallback callback);
 
@@ -86,20 +76,18 @@ public class EasyPusher implements Pusher {
     private native void stopPush(long pusherObj);
 
     public synchronized void stop() {
-        if (mPusherObj == 0) {
-            return;
-        }
+        Log.w(TAG, "PusherStop");
+        if (mPusherObj == 0) return;
         stopPush(mPusherObj);
         mPusherObj = 0;
     }
 
     @Override
-    public synchronized void initPush(String serverIP, String serverPort, String streamName, String key,
-                                      Context context, final InitCallback callback) {
-        Log.w(TAG, "initPush");
+    public synchronized void initPush(String serverIP, String serverPort, String streamName, Context context, final InitCallback callback) {
+        Log.w(TAG, "PusherStart");
+        String key = KEY;
         mPusherObj = init(serverIP, serverPort, streamName, key, context, new OnInitPusherCallback() {
             int code = Integer.MAX_VALUE;
-
             @Override
             public void onCallback(int code) {
                 if (code != this.code) {
@@ -111,38 +99,35 @@ public class EasyPusher implements Pusher {
     }
 
     @Override
-    public void initPush(String url, String key, Context context, InitCallback callback) {
+    public void initPush(String url, Context context, InitCallback callback) {
         throw new RuntimeException("not support");
     }
 
     @Override
-    public void initPush(String url, String key, Context context, InitCallback callback, int fps) {
+    public void initPush(String url, Context context, InitCallback callback, int fps) {
         throw new RuntimeException("not support");
     }
 
     public synchronized void push(byte[] data, int offset, int length, long timestamp, int type) {
-        if (mPusherObj == 0) {
-            return;
-        }
+        if (mPusherObj == 0) return;
         mTotal += length;
-        if (type == 1) {
+        if (type == 1){
             mTotalFrms++;
         }
         long interval = System.currentTimeMillis() - pPreviewTS;
-        if (interval >= 3000) {
+        if (interval >= 3000){
             long bps = mTotal * 1000 / (interval);
             long fps = mTotalFrms * 1000 / (interval);
             Log.w(TAG, String.format("bps:%d, fps:%d", fps, bps));
             pPreviewTS = System.currentTimeMillis();
             mTotal = 0;
             mTotalFrms = 0;
-//            BUS.post(new StreamStat((int)fps, (int)bps));
         }
         push(mPusherObj, data, offset, length, timestamp, type);
     }
 
     public synchronized void push(byte[] data, long timestamp, int type) {
-        push(data, 0, data.length, timestamp, type);
+        push( data, 0, data.length, timestamp, type);
     }
 }
 

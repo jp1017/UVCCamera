@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/DARKRED"
+    android:background="@color/colorPrimaryDark"
     tools:context="com.shenyaocn.android.dualcamera.MainActivity">
 
     <LinearLayout
@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/WHITE"
+            android:textColor="@android:color/white"
             android:textSize="22dp"
             android:text="双摄像头测试"
             android:layout_gravity="center"/>
@@ -23,7 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="@color/SEAGREEN"
+            android:background="@android:color/holo_blue_dark"
             android:orientation="horizontal">
 
             <FrameLayout
@@ -131,14 +131,14 @@
                 android:id="@+id/tvRecordTime"
                 android:layout_width="80dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/GREENYELLOW"
+                android:textColor="@android:color/holo_red_light"
                 android:layout_marginRight="30dp"
                 android:textSize="22dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/WHITE"
+                android:textColor="@android:color/white"
                 android:layout_marginRight="5dp"
                 android:textSize="20dp"
                 android:text="自动测试"/>
@@ -172,7 +172,7 @@
                     android:textSize="18sp"
                     android:background="@null"
                     android:layout_marginLeft="40dp"
-                    android:textColor="@color/WHITE"
+                    android:textColor="@android:color/white"
                     android:text="退出" />
         </LinearLayout>
     </LinearLayout>

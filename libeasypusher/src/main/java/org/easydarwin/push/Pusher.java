@@ -10,9 +10,9 @@ public interface Pusher {
 
     public void stop() ;
 
-    public  void initPush(String serverIP, String serverPort, String streamName, String key, Context context, InitCallback callback);
-    public  void initPush(String url, String key, Context context, InitCallback callback, int pts);
-    public  void initPush(String url, String key, Context context, InitCallback callback);
+    public  void initPush(final String serverIP, final String serverPort, final String streamName, final Context context, final InitCallback callback);
+    public  void initPush(final String url, final Context context, final InitCallback callback, int pts);
+    public  void initPush(final String url, final Context context, final InitCallback callback);
 
     public  void push(byte[] data, int offset, int length, long timestamp, int type);
 

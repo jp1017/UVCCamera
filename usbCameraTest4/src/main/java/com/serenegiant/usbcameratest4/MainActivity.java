@@ -32,7 +32,6 @@ import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
 
-import com.github.anrwatchdog.ANRWatchDog;
 import com.serenegiant.common.BaseActivity;
 import com.serenegiant.service.LogService;
 

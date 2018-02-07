@@ -93,14 +93,14 @@
 				android:visibility="visible"
 				/>
 
-			<com.ford.openxc.webcam.webcam.WebcamPreview
+<!--			<com.ford.openxc.webcam.webcam.WebcamPreview
 				android:id="@+id/camera_view_preview"
 				android:layout_width="match_parent"
 				android:layout_height="match_parent"
 				android:layout_centerHorizontal="true"
 				android:layout_centerVertical="true"
 				android:visibility="gone"
-				/>
+				/>-->
 
             <ImageView
                 android:id="@+id/frame_image_R"

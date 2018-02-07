@@ -68,9 +68,6 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
 		EventBus.getDefault().post(status);*/
 
 		switch (code) {
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-				KLog.w(TAG, "pushing invalid Key");
-				break;
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
 				KLog.w(TAG, "pushing 激活成功");
 				break;
@@ -98,19 +95,9 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
 			case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
 				KLog.w(TAG, "pushing 断开连接");
 //				isPushing = false;
+				//重连
 				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-				KLog.w(TAG, "pushing 平台不匹配");
-//				isPushing = false;
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-				KLog.w(TAG, "pushing 断授权使用商不匹配");
-//				isPushing = false;
-				break;
-			case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-				KLog.w(TAG, "pushing 进程名称长度不匹配");
-//				isPushing = false;
-				break;
+
 		}
 	}
 
@@ -157,7 +144,8 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
 
 		if (USEEASYPUSHER) {
 			if (mPusher == null) {
-				String id = BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID;
+//				String id = BACK_CAMERA ? Constants.PUSHER_BACK_ID : Constants.PUSHER_DVR_ID;
+				String id = "uvc";
 				final String url = String.format("rtsp://%s:%s/%s.sdp", videoIp, tcpPort, id);
 
 				/*PusherUrl pusherUrl = new PusherUrl();
@@ -169,7 +157,7 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
 
 				KLog.w(TAG, "pushing : url: " + url);
 
-				mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id), Constants.KEY_EASYPUSHER,
+				mPusher.initPush(videoIp, tcpPort + "", String.format("%s.sdp", id),
 						context.getApplicationContext(), this);
 
 				//新版本
@@ -448,7 +436,7 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
 				} else if (encoderStatus < 0) {
 
 				} else {
-					ByteBuffer encodedData = encoderOutputBuffers[encoderStatus];
+					/*ByteBuffer encodedData = encoderOutputBuffers[encoderStatus];
 					if (encodedData == null) {
 						throw new RuntimeException("encoderOutputBuffer " + encoderStatus +
 								" was null");
@@ -475,7 +463,7 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
 							bufferInfo.presentationTimeUs = 0;
 						}
 						mMuxer.writeSampleData(trackIndex, encodedData, bufferInfo);
-					}
+					}*/
 
                     //2. pushing
 
@@ -510,86 +498,50 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
                     } else {
                         //easypusher 推流
                         if (mPusher != null && isPushing) {
-
-                            /*outputBuffer.position(mBufferInfo.offset);
-                            outputBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
-
-                            boolean sync = false;
-                            if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
-                                sync = (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-                                if (!sync) {
-                                    byte[] temp = new byte[mBufferInfo.size];
-                                    outputBuffer.get(temp);
-                                    mPpsSps = temp;
-                                    mMediaCodec.releaseOutputBuffer(encoderStatus, false);
-                                    continue;
-                                } else {
-                                    mPpsSps = new byte[0];
-                                }
-                            }
-                            sync |= (mBufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-                            int len = mPpsSps.length + mBufferInfo.size;
-                            if (len > h264.length) {
-                                h264 = new byte[len];
-                            }
-                            if (sync) {
-                                System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
-                                outputBuffer.get(h264, mPpsSps.length, mBufferInfo.size);
-                                mPusher.push(h264, 0, mPpsSps.length + mBufferInfo.size, mBufferInfo.presentationTimeUs / 1000, 1);
-                                if (DEBUG) {
-                                    KLog.w(TAG, String.format("push i video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
-                                }
+                            ByteBuffer outputBuffer;
+                            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                outputBuffer = mEncoderVideo.getOutputBuffer(encoderStatus);
                             } else {
-                                outputBuffer.get(h264, 0, mBufferInfo.size);
-                                mPusher.push(h264, 0, mBufferInfo.size, mBufferInfo.presentationTimeUs / 1000, 1);
-                                if (DEBUG) {
-                                    KLog.w(TAG, String.format("push video stamp:%d", mBufferInfo.presentationTimeUs / 1000));
-                                }
+                                outputBuffer = encoderOutputBuffers[encoderStatus];
                             }*/
+                            outputBuffer = encoderOutputBuffers[encoderStatus];
 
-                            ByteBuffer outputBuffer_;
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                                outputBuffer_ = mediaCodec.getOutputBuffer(encoderStatus);
-                            } else {
-//                                if (encoderOutputBuffers == null) {
-//                                    continue;
-//                                }
-                                outputBuffer_ = encoderOutputBuffers[encoderStatus];
-                            }
-
-                            outputBuffer_.position(bufferInfo.offset);
-                            outputBuffer_.limit(bufferInfo.offset + bufferInfo.size);
+                            outputBuffer.clear();
+                            outputBuffer.position(bufferInfo.offset);
+                            outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
 
                             boolean sync = false;
                             if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
                                 sync = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
                                 if (!sync) {
                                     byte[] temp = new byte[bufferInfo.size];
-                                    outputBuffer_.get(temp);
+                                    outputBuffer.get(temp);
                                     mPpsSps = temp;
-                                    mediaCodec.releaseOutputBuffer(encoderStatus, false);
+                                    mEncoderVideo.releaseOutputBuffer(encoderStatus, false);
                                     continue;
                                 } else {
                                     mPpsSps = new byte[0];
                                 }
                             }
-                            sync |= (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                            sync = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
                             int len = mPpsSps.length + bufferInfo.size;
                             if (len > h264.length) {
                                 h264 = new byte[len];
                             }
                             if (sync) {
                                 System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
-                                outputBuffer_.get(h264, mPpsSps.length, bufferInfo.size);
-                                mPusher.push(h264, 0, mPpsSps.length + bufferInfo.size,
-                                        bufferInfo.presentationTimeUs / 1000, 1);
-                                KLog.w(TAG, String.format("push i video stamp:%d", bufferInfo.presentationTimeUs / 1000));
+                                outputBuffer.get(h264, mPpsSps.length, bufferInfo.size);
+
+                                bufferInfo.offset = 0;
+                                bufferInfo.size = mPpsSps.length + bufferInfo.size;
                             } else {
-                                outputBuffer_.get(h264, 0, bufferInfo.size);
-                                mPusher.push(h264, 0, bufferInfo.size,
-                                        bufferInfo.presentationTimeUs / 1000, 1);
-                                KLog.w(TAG, String.format("push video stamp:%d", bufferInfo.presentationTimeUs / 1000));
+                                outputBuffer.get(h264, 0, bufferInfo.size);
                             }
+
+                            mPusher.push(h264, 0, bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
+                            Log.w(TAG, String.format("push i video stamp:%d", bufferInfo.presentationTimeUs / 1000));
+
+                        }
 
                         } /*else {
 					if (mPusher != null) {
@@ -607,7 +559,7 @@ public class AvcEncoder implements InitCallback, ConnectCheckerRtsp {
 						break;
 					}
 				}
-			}
+
 		} catch (Exception ex) {
 		}
 		return trackIndex;

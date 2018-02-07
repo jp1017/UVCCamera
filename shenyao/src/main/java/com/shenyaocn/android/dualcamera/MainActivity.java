@@ -36,6 +36,7 @@ import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.usb.UVCCamera;
 import com.serenegiant.widget.UVCCameraTextureView;
 import com.shenyaocn.android.Encoder.AVWriter;
+import com.socks.library.KLog;
 
 import org.easydarwin.sw.TxtOverlay;
 
@@ -57,8 +58,8 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
     private static final boolean DEBUG = true;    // 用于显示调试信息
     private static final String TAG = "MainActivity";
 
-//    public static final String NAME_FONT = "SIMYOU.ttf";
-    public static final String NAME_FONT = "MICO.ttf";
+    public static final String NAME_FONT = "SIMYOU.ttf";
+//    public static final String NAME_FONT = "MICO.ttf";
 
     private AVWriter avWriterL = new AVWriter(1);    // 用于左边摄像头录像
     private AVWriter avWriterR = new AVWriter(2);    // 用于右边摄像头录像
@@ -106,7 +107,7 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
     boolean threadRunning;
     private static final int TEST_MSEC_PER_MIN = 30000;
 
-    private static final int FORMAT_CALLBACK = UVCCamera.PIXEL_FORMAT_NV21;
+    private static final int FORMAT_CALLBACK = UVCCamera.PIXEL_FORMAT_YUV420SP;
 
     //水印
     private TxtOverlay mTxtOverlay;
@@ -721,16 +722,16 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
                     return;
                 }
                 try {
-                    camera.setPreviewSize(currentWidth, currentHeight, UVCCamera.FRAME_FORMAT_MJPEG, BANDWIDTH_FACTORS); // 0.5f是一个重要参数，表示带宽可以平均分配给两个摄像头，如果是一个摄像头则是1.0f，可以参考驱动实现
+                    camera.setPreviewSize(currentWidth, currentHeight, UVCCamera.PIXEL_FORMAT_YUV420SP, BANDWIDTH_FACTORS); // 0.5f是一个重要参数，表示带宽可以平均分配给两个摄像头，如果是一个摄像头则是1.0f，可以参考驱动实现
                 } catch (final IllegalArgumentException e1) {
                     Log.e("FRAME_FORMAT", "MJPEG Failed");
                     try {
-                        camera.setPreviewSize(currentWidth, currentHeight, UVCCamera.DEFAULT_PREVIEW_MODE, BANDWIDTH_FACTORS);
+                        camera.setPreviewSize(currentWidth, currentHeight, UVCCamera.PIXEL_FORMAT_YUV420SP, BANDWIDTH_FACTORS);
                     } catch (final IllegalArgumentException e2) {
                         try {
                             currentWidth = UVCCamera.DEFAULT_PREVIEW_WIDTH;
                             currentHeight = UVCCamera.DEFAULT_PREVIEW_HEIGHT;
-                            camera.setPreviewSize(currentWidth, currentHeight, UVCCamera.DEFAULT_PREVIEW_MODE, BANDWIDTH_FACTORS);
+                            camera.setPreviewSize(currentWidth, currentHeight, UVCCamera.PIXEL_FORMAT_YUV420SP, BANDWIDTH_FACTORS);
                         } catch (final IllegalArgumentException e3) {
                             camera.destroy();
                             runOnUiThread(new Runnable() {
@@ -843,7 +844,7 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
     };
 
     private String getCurrentTime() {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yy-MM-dd HH:mm:ss SSS");
         return simpleDateFormat.format(new Date());
     }
 
@@ -851,8 +852,11 @@ public final class MainActivity extends Activity implements CameraDialog.CameraD
     private final IFrameCallback mUVCFrameCallbackL = new IFrameCallback() {
         @Override
         public void onFrame(final ByteBuffer frame) {
-            if (mUVCCameraL == null)
+            if (mUVCCameraL == null) {
                 return;
+            }
+
+            KLog.w(TAG, "onFrame: begin");
 
             final Size size = mUVCCameraL.getPreviewSize();
             byte[] buffer = null;

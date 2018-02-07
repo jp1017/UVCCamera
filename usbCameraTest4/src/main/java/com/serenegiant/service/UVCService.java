@@ -33,6 +33,7 @@ import android.os.RemoteException;
 import android.util.SparseArray;
 import android.view.Surface;
 
+import com.serenegiant.app.UvcApp;
 import com.serenegiant.common.BaseService;
 import com.serenegiant.usb.USBMonitor;
 import com.serenegiant.usb.USBMonitor.OnDeviceConnectListener;
@@ -148,7 +149,7 @@ public class UVCService extends BaseService {
 					synchronized (sServiceSync) {
 						service = sCameraServers.get(key);
 						if (service == null) {
-							service = CameraServer.createServer(UVCService.this, ctrlBlock, device.getVendorId(), device.getProductId());
+							service = CameraServer.createServer(false, UvcApp.getApplication(), ctrlBlock, false);
 							sCameraServers.append(key, service);
 						} else {
 							KLog.w(TAG, "service already exist before connection");
@@ -376,7 +377,7 @@ public class UVCService extends BaseService {
 			if (DEBUG) KLog.w(TAG, "mBasicBinder#removeSurface:id=" + id_surface);
 			final CameraServer server = getCameraServer(serviceId);
 			if (server != null)
-				server.removeSurface(id_surface, surface);
+				server.removeSurface(id_surface);
 		}
 
 		@Override
