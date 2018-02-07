@@ -91,7 +91,7 @@ public class AVWriter {
 	 * @param easyPusher
 	 */
 	public void setPusher(Pusher easyPusher) {
-//		avcEncoder.setPusher(easyPusher);
+		avcEncoder.setPusher(easyPusher);
 	}
 
 	public boolean open(String fileName, int width, int height, Pusher pusher) {

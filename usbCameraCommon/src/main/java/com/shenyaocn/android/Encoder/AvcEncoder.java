@@ -325,4 +325,7 @@ public class AvcEncoder implements Runnable {
 		}
 	}
 
+	public void setPusher(Pusher easyPusher) {
+		mPusher = easyPusher;
+	}
 }

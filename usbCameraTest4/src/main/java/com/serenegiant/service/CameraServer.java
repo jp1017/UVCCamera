@@ -584,7 +584,7 @@ public final class CameraServer extends Handler {
                 startRecord(mAVWriter, mUVCCamera, videoPath);
 
                 //开启录音
-                if (true) {
+                if (false) {
                     // TODO: 18-1-9 下午3:46 添加音频编码后,视频只有34k,没法播放
                     startAudio();
                 }
