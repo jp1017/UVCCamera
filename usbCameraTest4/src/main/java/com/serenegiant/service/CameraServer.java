@@ -357,6 +357,8 @@ public final class CameraServer extends Handler {
 
             this.isDvr = isDvr;
 
+            mAVWriter = new AVWriter();
+
 			mWeakContext = new WeakReference<>(context);
 			mCtrlBlock = ctrlBlock;
 
@@ -579,8 +581,6 @@ public final class CameraServer extends Handler {
             if (mUVCCamera != null) {
 				String videoPath = Helper.getVideoFileName();
 
-                mAVWriter = new AVWriter();
-
                 startRecord(mAVWriter, mUVCCamera, videoPath);
 
                 //开启录音
@@ -603,12 +603,10 @@ public final class CameraServer extends Handler {
 
         private void openAVWriter(String fileName, AVWriter avWriter, UVCCamera uvcCamera) {
             Size size = uvcCamera.getPreviewSize();
-            /*if (audioRecord != null) {
-                avWriter.open(fileName, size.width, size.height, audioRecord.getSampleRate(), audioRecord.getChannelCount());
-            } else {
-                avWriter.open(fileName, size.width, size.height, 0, 0);
-            }*/
-            avWriter.open(fileName, size.width, size.height, mPusher);
+
+            avWriter.open(fileName, size.width, size.height, 0, 0);
+
+//            avWriter.open(fileName, size.width, size.height, mPusher);
         }
 
         private void stopRecord(AVWriter avWriter) {
@@ -705,7 +703,7 @@ public final class CameraServer extends Handler {
 				case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
 					KLog.w(TAG, "推流 connect success");
                     mIsPushing = true;
-//					mAVWriter.setPusher(mPusher);
+					mAVWriter.setPusher(mPusher);
 
                     break;
 				case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
@@ -720,7 +718,7 @@ public final class CameraServer extends Handler {
 					break;
 				case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
 					KLog.w(TAG, "推流 断开连接");
-//					mAVWriter.setPusher(null);
+					mAVWriter.setPusher(null);
                     mIsPushing = false;
                     break;
 			}
@@ -743,7 +741,7 @@ public final class CameraServer extends Handler {
                 mPusher.stop();
                 mPusher = null;
             }
-//            mAVWriter.setPusher(null);
+            mAVWriter.setPusher(null);
         }
 
 		private void handleRelease() {

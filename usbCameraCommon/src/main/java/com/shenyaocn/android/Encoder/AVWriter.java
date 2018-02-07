@@ -80,7 +80,22 @@ public class AVWriter {
 	 * @param easyPusher
 	 */
 	public void setPusher(Pusher easyPusher) {
+        if (avcEncoder == null) {
+            avcEncoder = new AvcEncoder();
+        }
+
 		avcEncoder.setPusher(easyPusher);
+	}
+
+	public boolean open(String fileName, int width, int height, int i, int j) {
+		if (avcEncoder == null) {
+			avcEncoder = new AvcEncoder();
+		}
+
+		recordFileName = fileName;
+
+		bOpened = avcEncoder.open(fileName, width, height);
+		return bOpened;
 	}
 
 	public boolean open(String fileName, int width, int height, Pusher pusher) {

@@ -38,6 +38,9 @@ public class AvcEncoder implements Runnable {
     private int mWidth;
     private int mHeight;
 
+    public AvcEncoder() {
+    }
+
     public AvcEncoder(Pusher pusher) {
         mPusher = pusher;
     }
