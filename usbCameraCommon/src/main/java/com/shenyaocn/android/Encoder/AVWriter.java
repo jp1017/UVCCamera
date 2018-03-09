@@ -98,17 +98,6 @@ public class AVWriter {
 		return bOpened;
 	}
 
-	public boolean open(String fileName, int width, int height, Pusher pusher) {
-		if (avcEncoder == null) {
-			avcEncoder = new AvcEncoder(pusher);
-		}
-
-		recordFileName = fileName;
-
-		bOpened = avcEncoder.open(fileName, width, height);
-		return bOpened;
-	}
-
 	public String getRecordFileName() {
 		return recordFileName;
 	}

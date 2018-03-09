@@ -38,13 +38,6 @@ public class AvcEncoder implements Runnable {
     private int mWidth;
     private int mHeight;
 
-    public AvcEncoder() {
-    }
-
-    public AvcEncoder(Pusher pusher) {
-        mPusher = pusher;
-    }
-
 	public synchronized boolean open(String fileName, int width, int height) {
 		mWidth = width;
 		mHeight = height;
@@ -179,7 +172,9 @@ public class AvcEncoder implements Runnable {
 			byte[] h264 = new byte[mWidth * mHeight];
 
 			while (mVideoStarted) {
-                KLog.w(TAG, "consumer running ispusher; " + (mPusher != null));
+				if (mPusher == null) {
+					KLog.w(TAG, "consumer running ispusher = null");
+				}
 
                 int encoderStatus = mEncoderVideo.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
 				if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {

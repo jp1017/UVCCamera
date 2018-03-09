@@ -37,6 +37,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteCallbackList;
+import android.os.SystemClock;
 import android.view.Surface;
 
 import com.serenegiant.app.UvcApp;
@@ -703,7 +704,10 @@ public final class CameraServer extends Handler {
 				case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
 					KLog.w(TAG, "推流 connect success");
                     mIsPushing = true;
-					mAVWriter.setPusher(mPusher);
+
+//                    SystemClock.sleep(5000);
+
+                    mAVWriter.setPusher(mPusher);
 
                     break;
 				case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
